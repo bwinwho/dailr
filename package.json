@@ -1,0 +1,15 @@
+{
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  },
+  "name": "dialr",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "DIALR \u2014 frontend UI/UX architecture for an Android replacement dialer.",
+  "scripts": {
+    "dev": "node tools/serve.mjs 4173",
+    "wallpapers": "node tools/gen-wallpapers.mjs",
+    "shots": "node tools/shoot.mjs"
+  }
+}

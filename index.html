@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en" data-mode="dark" data-tone="mono">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="DIALR — a replacement Android dialer and contacts app. Frontend architecture preview running on mock data.">
+<title>DIALR</title>
+
+<!--
+  Type: progressive enhancement only.
+  Archivo (display) and Inter Tight (text) are the intended families. If the
+  network is unavailable — the normal case inside an offline Android WebView —
+  the fallback stack in tokens.css keeps the same proportions using Roboto Flex,
+  whose width axis we drive to match. Nothing about the layout depends on these
+  files arriving.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" media="print" onload="this.media='all'"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=Inter+Tight:wght@400..800&display=swap">
+
+<link rel="stylesheet" href="src/styles/base/reset.css">
+<link rel="stylesheet" href="src/styles/base/tokens.css">
+<link rel="stylesheet" href="src/styles/base/typography.css">
+<link rel="stylesheet" href="src/styles/base/layout.css">
+<link rel="stylesheet" href="src/styles/components/primitives.css">
+<link rel="stylesheet" href="src/styles/components/dock.css">
+<link rel="stylesheet" href="src/styles/components/cards.css">
+<link rel="stylesheet" href="src/styles/components/call.css">
+<link rel="stylesheet" href="src/styles/screens/screens.css">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23000'/%3E%3Ctext x='16' y='22' font-family='Archivo,sans-serif' font-size='16' font-weight='900' fill='%23fff' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+</head>
+<body class="is-framed">
+  <div id="dialr-root"></div>
+
+  <noscript>
+    <p style="padding:2rem;font:16px system-ui;color:#fff">
+      DIALR's interface is built in JavaScript. Enable it to view the prototype.
+    </p>
+  </noscript>
+
+  <script type="module">
+    import { boot } from './src/app/main.js';
+
+    const root = document.getElementById('dialr-root');
+
+    boot(root).then((app) => {
+      // Exposed for design work and for the Kotlin layer to poke during bring-up.
+      window.dialrApp = app;
+      document.body.dataset.ready = 'true';
+    }).catch((err) => {
+      console.error('[DIALR] boot failed', err);
+      root.innerHTML =
+        '<div style="padding:2rem;font:15px/1.6 system-ui;color:#fff">' +
+        '<h1 style="font:800 28px system-ui;margin:0 0 .5rem">DIALR could not start</h1>' +
+        '<p style="opacity:.7;margin:0 0 1rem">' + String(err && err.message || err) + '</p>' +
+        '<pre style="opacity:.45;font-size:12px;white-space:pre-wrap">' + String(err && err.stack || '') + '</pre></div>';
+    });
+  </script>
+</body>
+</html>

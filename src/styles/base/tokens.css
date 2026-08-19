@@ -1,0 +1,342 @@
+/* ============================================================================
+   DIALR — DESIGN TOKENS
+   ----------------------------------------------------------------------------
+   Four layers, in this order. Never skip a layer.
+
+     L1  PRIMITIVE   raw scales. No meaning. Never used directly by components.
+     L2  SEMANTIC    meaning-bearing aliases. Components use ONLY these.
+     L3  THEMED      overwritten at runtime by src/theme/themeEngine.js when a
+                     wallpaper palette is active. Same names as L2 so components
+                     never learn that theming exists.
+     L4  COMPONENT   per-component geometry, derived from L1.
+
+   RULE: a component stylesheet may reference L2 and L4 only.
+   ========================================================================== */
+
+:root {
+  /* ==========================================================================
+     L1 — PRIMITIVES
+     ====================================================================== */
+
+  /* --- neutral ramp (pure achromatic; the product's default is monochrome) - */
+  --n-0:   #000000;
+  --n-4:   #0a0a0a;
+  --n-8:   #121212;
+  --n-12:  #1a1a1a;
+  --n-16:  #232323;
+  --n-22:  #2e2e2e;
+  --n-28:  #3a3a3a;
+  --n-36:  #4a4a4a;
+  --n-46:  #5e5e5e;
+  --n-58:  #787878;
+  --n-70:  #9a9a9a;
+  --n-82:  #c2c2c2;
+  --n-92:  #e4e4e4;
+  --n-96:  #f2f2f2;
+  --n-100: #ffffff;
+
+  /* --- fixed-meaning colors -------------------------------------------------
+     These are SAFETY colors. The wallpaper theme engine is forbidden from
+     touching them. Answer must always be that green; decline always that red.
+     -------------------------------------------------------------------- */
+  --fixed-answer:    #16c65a;
+  --fixed-answer-dk: #0f9a44;
+  --fixed-decline:   #f5333f;
+  --fixed-decline-dk:#c31d28;
+  --fixed-warn:      #ffb020;
+  --fixed-danger:    #ff5a5f;
+  --fixed-info:      #4aa8ff;
+  --fixed-note:      #ffd166;
+  --fixed-emergency: #ff2d2d;
+
+  /* --- spacing (4pt base, 2pt half-steps) ---------------------------------- */
+  --sp-0:  0px;
+  --sp-1:  2px;
+  --sp-2:  4px;
+  --sp-3:  6px;
+  --sp-4:  8px;
+  --sp-5:  12px;
+  --sp-6:  16px;
+  --sp-7:  20px;
+  --sp-8:  24px;
+  --sp-9:  32px;
+  --sp-10: 40px;
+  --sp-11: 48px;
+  --sp-12: 64px;
+  --sp-13: 80px;
+
+  /* --- radius -------------------------------------------------------------- */
+  --r-xs:  6px;
+  --r-sm:  10px;
+  --r-md:  16px;
+  --r-lg:  22px;
+  --r-xl:  28px;
+  --r-2xl: 34px;
+  --r-pill: 999px;
+  --r-circle: 50%;
+
+  /* --- type families --------------------------------------------------------
+     Display = wide, heavy, editorial grotesque. Text = neutral UI grotesque.
+     Numeric = tabular for durations, timers and the dial readout.
+     Web fonts are progressive enhancement only; the fallback stack is chosen so
+     that an offline Android WebView still renders the intended proportions
+     (Roboto Flex exposes a width axis we push to 112 in base.css).
+     -------------------------------------------------------------------- */
+  --font-display: "Archivo Expanded", "Archivo", "Roboto Flex", "Roboto Condensed",
+                  "Helvetica Neue", system-ui, -apple-system, sans-serif;
+  --font-text:    "Inter Tight", "Inter", "Roboto Flex", Roboto,
+                  system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-num:     "Inter Tight", "Roboto Flex", Roboto, ui-monospace, system-ui, sans-serif;
+
+  /* --- type scale (px @ fontScale 1.0; --fs multiplies in base.css) --------- */
+  --t-micro:    10.5px;
+  --t-label:    12px;
+  --t-caption:  13px;
+  --t-body-sm:  14px;
+  --t-body:     15.5px;
+  --t-body-lg:  17px;
+  --t-title:    20px;
+  --t-title-lg: 24px;
+  --t-display-s:30px;
+  --t-display-m:38px;
+  --t-display-l:48px;
+  --t-display-xl:60px;
+
+  /* --- weight -------------------------------------------------------------- */
+  --w-regular:  400;
+  --w-medium:   500;
+  --w-semibold: 600;
+  --w-bold:     700;
+  --w-black:    800;
+  --w-ultra:    900;
+
+  /* --- tracking ------------------------------------------------------------ */
+  --tr-tightest: -0.04em;
+  --tr-tighter:  -0.03em;
+  --tr-tight:    -0.015em;
+  --tr-normal:   0em;
+  --tr-wide:     0.04em;
+  --tr-wider:    0.08em;
+  --tr-widest:   0.14em;
+
+  /* --- leading ------------------------------------------------------------- */
+  --lh-flat: 0.92;
+  --lh-tight: 1.05;
+  --lh-snug: 1.22;
+  --lh-normal: 1.45;
+  --lh-loose: 1.6;
+
+  /* --- elevation ----------------------------------------------------------- */
+  --sh-0: none;
+  --sh-1: 0 1px 2px rgba(0,0,0,.40);
+  --sh-2: 0 4px 14px rgba(0,0,0,.42);
+  --sh-3: 0 10px 30px rgba(0,0,0,.50);
+  --sh-4: 0 18px 52px rgba(0,0,0,.58);
+  --sh-dock: 0 8px 34px rgba(0,0,0,.62), 0 2px 8px rgba(0,0,0,.44);
+  --sh-glow: 0 0 0 0 rgba(0,0,0,0);
+
+  /* --- blur / scrim -------------------------------------------------------- */
+  --blur-sm: 8px;
+  --blur-md: 18px;
+  --blur-lg: 34px;
+  --scrim-weak:   0.34;
+  --scrim-medium: 0.58;
+  --scrim-strong: 0.80;
+
+  /* --- motion ---------------------------------------------------------------
+     Durations are multiplied by --motion-scale (0 when reduced motion is on),
+     so every transition in the app can be disabled from one place.
+     -------------------------------------------------------------------- */
+  --motion-scale: 1;
+  --d-instant: calc(90ms  * var(--motion-scale));
+  --d-fast:    calc(150ms * var(--motion-scale));
+  --d-base:    calc(240ms * var(--motion-scale));
+  --d-slow:    calc(380ms * var(--motion-scale));
+  --d-xslow:   calc(620ms * var(--motion-scale));
+
+  --e-standard:  cubic-bezier(.2, .8, .2, 1);      /* default: emphasised decel */
+  --e-enter:     cubic-bezier(.05, .7, .1, 1);     /* things arriving           */
+  --e-exit:      cubic-bezier(.3, 0, .8, .15);     /* things leaving            */
+  --e-spring:    cubic-bezier(.16, 1.16, .3, 1);   /* dock morph, card expand   */
+  --e-linear:    linear;
+
+  /* --- z-index ladder (single source of truth) ----------------------------- */
+  --z-wallpaper:   0;
+  --z-screen:      10;
+  --z-screen-head: 15;
+  --z-scrim:       40;
+  --z-search:      50;
+  --z-dock:        60;
+  --z-sheet:       70;
+  --z-modal:       80;
+  --z-call:        90;
+  --z-toast:      100;
+  --z-dev:        110;
+
+  /* --- device safe areas (WebView provides these; browser falls back to 0) -- */
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+
+  /* --- accessibility multipliers (written by settings) --------------------- */
+  --fs: 1;             /* font scale 0.9 – 1.35                                */
+  --touch-min: 48px;   /* never render an interactive target smaller than this */
+
+  /* ==========================================================================
+     L4 — COMPONENT GEOMETRY
+     ====================================================================== */
+  --dock-h:          64px;
+  --dock-inset-x:    14px;
+  --dock-inset-b:    14px;
+  --dock-radius:     var(--r-2xl);
+  --dock-gap:        8px;
+  --dock-pad:        6px;
+
+  --search-h:        52px;
+  --search-gap:      10px;   /* distance from search to dock                   */
+
+  /* Everything anchored above the dock uses this. One number to retune the
+     entire one-handed zone. */
+  --bottom-zone: calc(
+      var(--dock-inset-b) + var(--dock-h) + var(--search-gap) + var(--search-h) + var(--safe-b)
+  );
+  --bottom-zone-nosearch: calc(var(--dock-inset-b) + var(--dock-h) + var(--safe-b));
+
+  --card-radius:     var(--r-lg);
+  --card-pad:        var(--sp-6);
+  --card-gap:        var(--sp-4);
+
+  --avatar-xs: 28px;
+  --avatar-sm: 38px;
+  --avatar-md: 54px;
+  --avatar-lg: 84px;
+  --avatar-xl: 128px;
+
+  --key-size:  clamp(58px, 19vw, 76px);
+  --key-gap:   clamp(6px, 2.2vw, 14px);
+
+  --screen-pad-x: var(--sp-6);
+  --screen-max-w: 520px;
+}
+
+/* ============================================================================
+   L2 — SEMANTIC (DARK / default)
+   These names are the entire public API of the colour system.
+   themeEngine.js re-writes this exact set on :root when a palette is applied.
+   ========================================================================== */
+:root,
+[data-mode="dark"] {
+  color-scheme: dark;
+
+  --bg:            var(--n-0);
+  --bg-elevated:   var(--n-8);
+
+  --surface-1:     var(--n-12);
+  --surface-2:     var(--n-16);
+  --surface-3:     var(--n-22);
+  --surface-4:     var(--n-28);
+  --surface-inset: var(--n-4);
+
+  --fg:            var(--n-100);
+  --fg-secondary:  rgba(255,255,255,.74);
+  --fg-tertiary:   rgba(255,255,255,.48);
+  --fg-quaternary: rgba(255,255,255,.28);
+  --fg-on-accent:  var(--n-0);
+
+  --line:          rgba(255,255,255,.12);
+  --line-strong:   rgba(255,255,255,.26);
+  --line-hairline: rgba(255,255,255,.07);
+
+  /* Accent. Monochrome by default — a wallpaper palette makes this chromatic. */
+  --accent:        var(--n-100);
+  --accent-ink:    var(--n-0);      /* readable text/icon ON --accent          */
+  --accent-soft:   rgba(255,255,255,.14);
+  --accent-line:   rgba(255,255,255,.34);
+  --accent-glow:   rgba(255,255,255,.10);
+
+  /* Secondary chroma from the wallpaper, used sparingly (max 2 places/screen) */
+  --accent-2:      var(--n-82);
+  --accent-2-soft: rgba(255,255,255,.10);
+
+  --scrim:         0,0,0;           /* rgb triplet for rgba() composition      */
+  --overlay-veil:  rgba(0,0,0,.66);
+
+  --positive:      var(--fixed-answer);
+  --negative:      var(--fixed-decline);
+  --warn:          var(--fixed-warn);
+  --danger:        var(--fixed-danger);
+  --info:          var(--fixed-info);
+  --note:          var(--fixed-note);
+
+  --skeleton-a: rgba(255,255,255,.05);
+  --skeleton-b: rgba(255,255,255,.11);
+}
+
+/* ============================================================================
+   L2 — SEMANTIC (LIGHT)
+   Not a tint of dark: a deliberate mirror. Paper-white, ink-black.
+   ========================================================================== */
+[data-mode="light"] {
+  color-scheme: light;
+
+  --bg:            var(--n-100);
+  --bg-elevated:   var(--n-96);
+
+  --surface-1:     var(--n-96);
+  --surface-2:     var(--n-92);
+  --surface-3:     #dcdcdc;
+  --surface-4:     #cbcbcb;
+  --surface-inset: #ffffff;
+
+  --fg:            var(--n-0);
+  --fg-secondary:  rgba(0,0,0,.70);
+  --fg-tertiary:   rgba(0,0,0,.46);
+  --fg-quaternary: rgba(0,0,0,.26);
+  --fg-on-accent:  var(--n-100);
+
+  --line:          rgba(0,0,0,.13);
+  --line-strong:   rgba(0,0,0,.30);
+  --line-hairline: rgba(0,0,0,.07);
+
+  --accent:        var(--n-0);
+  --accent-ink:    var(--n-100);
+  --accent-soft:   rgba(0,0,0,.09);
+  --accent-line:   rgba(0,0,0,.32);
+  --accent-glow:   rgba(0,0,0,.07);
+
+  --accent-2:      var(--n-28);
+  --accent-2-soft: rgba(0,0,0,.07);
+
+  --scrim:         255,255,255;
+  --overlay-veil:  rgba(255,255,255,.72);
+
+  --sh-1: 0 1px 2px rgba(0,0,0,.10);
+  --sh-2: 0 4px 14px rgba(0,0,0,.11);
+  --sh-3: 0 10px 30px rgba(0,0,0,.14);
+  --sh-4: 0 18px 52px rgba(0,0,0,.17);
+  --sh-dock: 0 8px 30px rgba(0,0,0,.16), 0 2px 8px rgba(0,0,0,.10);
+
+  --skeleton-a: rgba(0,0,0,.05);
+  --skeleton-b: rgba(0,0,0,.10);
+}
+
+/* ============================================================================
+   HIGH CONTRAST — an accessibility escape hatch that survives any wallpaper.
+   ========================================================================== */
+[data-contrast="high"] {
+  --fg-secondary:  var(--fg);
+  --fg-tertiary:   var(--fg);
+  --line:          var(--line-strong);
+  --line-hairline: var(--line-strong);
+  --accent-soft:   transparent;
+}
+[data-contrast="high"][data-mode="dark"] { --surface-1: #000; --surface-2: #0d0d0d; }
+
+/* ============================================================================
+   REDUCED MOTION — one switch, whole app.
+   ========================================================================== */
+[data-motion="reduced"] { --motion-scale: 0.001; }
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="full"]) { --motion-scale: 0.001; }
+}

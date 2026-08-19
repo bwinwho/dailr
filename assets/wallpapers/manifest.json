@@ -1,0 +1,158 @@
+[
+  {
+    "id": "mono-void",
+    "name": "Void",
+    "pack": "dialr",
+    "file": "mono-void.svg",
+    "palette": {
+      "dominant": null,
+      "secondary": null,
+      "meanL": 0.09,
+      "mode": "dark"
+    },
+    "note": "Deliberately achromatic. Proves the monochrome path."
+  },
+  {
+    "id": "deep-green",
+    "name": "Deep Green",
+    "pack": "dialr",
+    "file": "deep-green.svg",
+    "palette": {
+      "dominant": "#2f8f78",
+      "secondary": "#123f5c",
+      "meanL": 0.22,
+      "mode": "dark"
+    },
+    "note": null
+  },
+  {
+    "id": "ember",
+    "name": "Ember",
+    "pack": "dialr",
+    "file": "ember.svg",
+    "palette": {
+      "dominant": "#e0642a",
+      "secondary": "#8a1b3d",
+      "meanL": 0.24,
+      "mode": "dark"
+    },
+    "note": null
+  },
+  {
+    "id": "sodium",
+    "name": "Sodium",
+    "pack": "dialr",
+    "file": "sodium.svg",
+    "palette": {
+      "dominant": "#e2a232",
+      "secondary": "#4a3a12",
+      "meanL": 0.2,
+      "mode": "dark"
+    },
+    "note": null
+  },
+  {
+    "id": "cobalt",
+    "name": "Cobalt Rain",
+    "pack": "dialr",
+    "file": "cobalt.svg",
+    "palette": {
+      "dominant": "#3f6fd8",
+      "secondary": "#1d8f9e",
+      "meanL": 0.21,
+      "mode": "dark"
+    },
+    "note": null
+  },
+  {
+    "id": "ultraviolet",
+    "name": "Ultraviolet",
+    "pack": "dialr",
+    "file": "ultraviolet.svg",
+    "palette": {
+      "dominant": "#8f5fe0",
+      "secondary": "#d0417a",
+      "meanL": 0.22,
+      "mode": "dark"
+    },
+    "note": null
+  },
+  {
+    "id": "blush",
+    "name": "Blush",
+    "pack": "dialr",
+    "file": "blush.svg",
+    "palette": {
+      "dominant": "#e07a8e",
+      "secondary": "#7a3f2a",
+      "meanL": 0.23,
+      "mode": "dark"
+    },
+    "note": null
+  },
+  {
+    "id": "concrete",
+    "name": "Concrete",
+    "pack": "dialr",
+    "file": "concrete.svg",
+    "palette": {
+      "dominant": "#5c7286",
+      "secondary": null,
+      "meanL": 0.19,
+      "mode": "dark"
+    },
+    "note": "Low chroma on purpose — the accent stays almost grey."
+  },
+  {
+    "id": "bone",
+    "name": "Bone",
+    "pack": "dialr",
+    "file": "bone.svg",
+    "palette": {
+      "dominant": "#b09a76",
+      "secondary": "#7f8f86",
+      "meanL": 0.88,
+      "mode": "light"
+    },
+    "note": null
+  },
+  {
+    "id": "paper",
+    "name": "Paper",
+    "pack": "dialr",
+    "file": "paper.svg",
+    "palette": {
+      "dominant": null,
+      "secondary": null,
+      "meanL": 0.95,
+      "mode": "light"
+    },
+    "note": "Light-mode achromatic counterpart to Void."
+  },
+  {
+    "id": "k31-chrome",
+    "name": "K31 Chrome",
+    "pack": "kode31",
+    "file": "k31-chrome.svg",
+    "palette": {
+      "dominant": "#c9d1dc",
+      "secondary": "#e02b2b",
+      "meanL": 0.26,
+      "mode": "dark"
+    },
+    "note": null
+  },
+  {
+    "id": "k31-signal",
+    "name": "K31 Signal",
+    "pack": "kode31",
+    "file": "k31-signal.svg",
+    "palette": {
+      "dominant": "#25e08f",
+      "secondary": "#0f4a6e",
+      "meanL": 0.2,
+      "mode": "dark"
+    },
+    "note": null
+  }
+]

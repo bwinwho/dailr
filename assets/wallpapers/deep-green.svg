@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="g0" cx="24%" cy="16%" r="78%">
+      <stop offset="0%" stop-color="#1d6b58" stop-opacity="0.92"/>
+      <stop offset="60%" stop-color="#1d6b58" stop-opacity="0.322"/>
+      <stop offset="100%" stop-color="#1d6b58" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g1" cx="78%" cy="74%" r="82%">
+      <stop offset="0%" stop-color="#0b3d4f" stop-opacity="0.78"/>
+      <stop offset="60%" stop-color="#0b3d4f" stop-opacity="0.273"/>
+      <stop offset="100%" stop-color="#0b3d4f" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g2" cx="56%" cy="44%" r="46%">
+      <stop offset="0%" stop-color="#3fae90" stop-opacity="0.4"/>
+      <stop offset="60%" stop-color="#3fae90" stop-opacity="0.140"/>
+      <stop offset="100%" stop-color="#3fae90" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.42"/></feComponentTransfer>
+    </filter>
+    <linearGradient id="vig" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#000" stop-opacity="0.30"/>
+      <stop offset="45%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.42"/>
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1920" fill="#04100d"/>
+  <rect width="1080" height="1920" fill="url(#g0)"/>
+  <rect width="1080" height="1920" fill="url(#g1)"/>
+  <rect width="1080" height="1920" fill="url(#g2)"/>
+  <rect width="1080" height="1920" fill="url(#vig)"/>
+  <rect width="1080" height="1920" filter="url(#grain)" opacity="0.055" style="mix-blend-mode:overlay"/>
+</svg>

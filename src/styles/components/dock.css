@@ -1,0 +1,204 @@
+/* ============================================================================
+   DIALR — FLOATING DOCK + SEARCH
+   The dock is two stacked rows. Navigation (bottom) is permanent; context
+   (top) grows out of it. See src/components/dock/FloatingDock.js for why.
+   ========================================================================== */
+
+.dock {
+  display: flex; flex-direction: column;
+  gap: var(--dock-gap);
+  transition: transform var(--d-base) var(--e-spring), opacity var(--d-base) var(--e-standard);
+}
+.dock.is-hidden {
+  transform: translate3d(0, 140%, 0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- context row --------------------------------------------------------
+   Collapsed to zero height and clipped, so it grows rather than pops. */
+.dock__context {
+  display: flex; align-items: stretch; gap: var(--dock-gap);
+  max-height: 0;
+  opacity: 0;
+  transform: translate3d(0, 10px, 0);
+  overflow: hidden;
+  transition: max-height var(--d-slow) var(--e-spring),
+              opacity var(--d-base) var(--e-standard),
+              transform var(--d-slow) var(--e-spring);
+}
+.dock.has-context .dock__context {
+  max-height: 76px;
+  opacity: 1;
+  transform: none;
+}
+
+.dock__cta {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: center; gap: var(--sp-4);
+  min-height: 56px;
+  padding: 0 var(--sp-6);
+  border-radius: var(--dock-radius);
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: var(--sh-dock);
+  transition: transform var(--d-fast) var(--e-standard), background var(--d-base) var(--e-standard);
+}
+.dock__cta:active { transform: scale(.98); }
+.dock__cta[data-tone="warn"]    { background: var(--warn);    color: #241800; }
+.dock__cta[data-tone="neutral"] { background: var(--surface-4); color: var(--fg); }
+.dock__cta.is-hidden { display: none; }
+
+.dock__cta-icon { display: grid; place-items: center; width: 24px; height: 24px; flex: 0 0 auto; }
+.dock__cta-icon svg { width: 24px; height: 24px; stroke-width: 2; }
+.dock__cta-text { display: flex; flex-direction: column; min-width: 0; align-items: flex-start; }
+.dock__cta-label {
+  font-family: var(--font-display); font-weight: var(--w-black);
+  font-size: calc(var(--t-body-lg) * var(--fs));
+  text-transform: uppercase; letter-spacing: var(--tr-tight);
+  line-height: 1.1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+}
+.dock__cta-sub { opacity: .68; margin-top: 1px; }
+.dock__cta-sub.is-hidden { display: none; }
+
+.dock__aux { display: flex; gap: var(--dock-gap); flex: 1 1 auto; min-width: 0; }
+/* With a CTA present the aux buttons stop growing and become icon squares. */
+.dock.has-context .dock__cta:not(.is-hidden) ~ .dock__aux { flex: 0 0 auto; }
+.dock__aux.is-hidden { display: none; }
+.dock__aux-btn {
+  display: flex; flex-direction: row; align-items: center; justify-content: center;
+  gap: var(--sp-3);
+  flex: 1 1 auto; min-width: 56px; min-height: 46px; padding: 0 var(--sp-5);
+  border-radius: var(--dock-radius);
+  background: var(--surface-3);
+  color: var(--fg-secondary);
+  box-shadow: var(--sh-dock);
+}
+.dock__aux-btn:active { background: var(--surface-4); }
+.dock__aux-icon { display: grid; place-items: center; width: 20px; height: 20px; }
+.dock__aux-icon svg { width: 20px; height: 20px; }
+.dock__aux-label {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--fg-tertiary);
+}
+.dock.has-context .dock__cta:not(.is-hidden) ~ .dock__aux .dock__aux-label { max-width: 78px; }
+/* When the CTA is present the aux buttons drop their labels to save width. */
+.dock.has-context .dock__cta:not(.is-hidden) ~ .dock__aux .dock__aux-btn { flex: 0 0 auto; min-width: 52px; padding: 0 var(--sp-4); }
+.dock.has-context .dock__cta:not(.is-hidden) ~ .dock__aux .dock__aux-label { display: none; }
+
+/* ---- navigation row ----------------------------------------------------- */
+.dock__nav {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  gap: 2px;
+  height: var(--dock-h);
+  padding: var(--dock-pad);
+  border-radius: var(--dock-radius);
+  background: var(--surface-3);
+  box-shadow: var(--sh-dock);
+  backdrop-filter: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md));
+}
+[data-tone="chromatic"] .dock__nav { background: color-mix(in srgb, var(--surface-3) 88%, var(--accent) 12%); }
+
+.dock__nav-item {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+  border-radius: calc(var(--dock-radius) - var(--dock-pad));
+  color: var(--fg-tertiary);
+  transition: color var(--d-fast) var(--e-standard), background var(--d-base) var(--e-standard);
+}
+.dock__nav-item:active { transform: scale(.95); }
+.dock__nav-icon { display: grid; place-items: center; width: 22px; height: 22px; }
+.dock__nav-icon svg { width: 22px; height: 22px; }
+.dock__nav-label {
+  opacity: 0; max-height: 0; overflow: hidden;
+  transition: opacity var(--d-base) var(--e-standard), max-height var(--d-base) var(--e-standard);
+}
+.dock__nav-item.is-active {
+  color: var(--bg);
+  background: var(--fg);
+}
+.dock__nav-item.is-active .dock__nav-label { opacity: 1; max-height: 14px; }
+
+.dock__nav-badge {
+  position: absolute; top: 7px; left: 50%; margin-left: 6px;
+  min-width: 16px; height: 16px; padding: 0 4px;
+  display: none; align-items: center; justify-content: center;
+  border-radius: var(--r-pill);
+  background: var(--negative); color: #fff;
+  font-size: 9px; letter-spacing: 0;
+}
+.dock__nav-badge.is-on { display: flex; }
+.dock__nav-item.is-active .dock__nav-badge { background: var(--bg); color: var(--fg); }
+
+/* anchored variant */
+.dock-anchored .app__bottom { padding-left: 0; padding-right: 0; padding-bottom: var(--safe-b); }
+.dock-anchored .dock__nav { border-radius: 0; box-shadow: none; }
+.dock-anchored .dock__context { padding: 0 var(--dock-inset-x); }
+
+/* ============================== search ==================================== */
+
+.search {
+  display: flex; align-items: center; gap: var(--sp-4);
+  height: var(--search-h);
+  padding: 0 var(--sp-5);
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  box-shadow: var(--sh-2);
+  transition: background var(--d-base) var(--e-standard), box-shadow var(--d-base) var(--e-standard);
+}
+.search.is-focused { background: var(--surface-4); box-shadow: var(--sh-3), 0 0 0 2px var(--accent-line); }
+.search.is-hidden { display: none; }
+.search__icon { display: grid; place-items: center; width: 20px; height: 20px; color: var(--fg-tertiary); flex: 0 0 auto; }
+.search__icon svg { width: 20px; height: 20px; }
+.search__input {
+  flex: 1 1 auto; min-width: 0;
+  font-size: calc(var(--t-body) * var(--fs));
+  color: var(--fg);
+}
+.search__input::-webkit-search-cancel-button { display: none; }
+.search__clear {
+  display: none; place-items: center;
+  width: 28px; height: 28px; border-radius: var(--r-circle);
+  background: var(--surface-1); color: var(--fg-secondary); flex: 0 0 auto;
+}
+.search__clear.is-on { display: grid; }
+.search__clear svg { width: 15px; height: 15px; }
+
+/* ---- results panel: grows upward out of the search bar ------------------ */
+.searchres {
+  position: absolute;
+  left: var(--dock-inset-x); right: var(--dock-inset-x);
+  bottom: calc(var(--bottom-actual, var(--bottom-zone)) + var(--sp-3));
+  max-height: 54%;
+  z-index: var(--z-search);
+  display: flex; flex-direction: column;
+  background: var(--surface-1);
+  border-radius: var(--r-xl);
+  box-shadow: var(--sh-4);
+  outline: 1px solid var(--line-hairline);
+  opacity: 0;
+  transform: translate3d(0, 14px, 0) scale(.98);
+  pointer-events: none;
+  transition: opacity var(--d-base) var(--e-standard), transform var(--d-base) var(--e-spring);
+  overflow: hidden;
+}
+.searchres.is-open { opacity: 1; transform: none; pointer-events: auto; }
+.searchres__list { flex: 1 1 auto; min-height: 0; padding: var(--sp-3) var(--sp-4) var(--sp-5); }
+.searchres__section { padding: var(--sp-4) var(--sp-2) var(--sp-2); }
+.searchres__row {
+  display: flex; align-items: center; gap: var(--sp-4);
+  width: 100%; min-height: 56px; padding: var(--sp-2) var(--sp-2); text-align: left;
+  border-radius: var(--r-md);
+}
+.searchres__row:active { background: var(--surface-2); }
+.searchres__glyph { display: grid; place-items: center; width: 34px; height: 34px;
+                    border-radius: var(--r-circle); background: var(--surface-2); color: var(--fg-tertiary); }
+.searchres__glyph svg { width: 17px; height: 17px; }
+.searchres__call { display: grid; place-items: center; width: 36px; height: 36px;
+                   border-radius: var(--r-circle); background: var(--surface-3); color: var(--fg); }
+.searchres__call svg { width: 17px; height: 17px; }
+.searchres__empty { padding: var(--sp-8) var(--sp-6); text-align: center; }
+.searchres__empty.is-hidden { display: none; }
