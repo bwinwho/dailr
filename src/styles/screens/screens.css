@@ -38,7 +38,7 @@
 .numdisp__row { display: flex; align-items: center; gap: var(--sp-4); min-height: 54px; position: relative; }
 .numdisp__value {
   flex: 1 1 auto; min-width: 0;
-  text-align: left;
+  text-align: center;
   font-size: calc(var(--t-display-m) * var(--fs) * var(--num-scale, 1));
   font-weight: var(--w-semibold);
   letter-spacing: var(--tr-tight);
@@ -67,8 +67,7 @@
    matching. Reserving the space means the keypad never moves again,
    regardless of what you type. See docs/UI_REVISION_PLAN.md § D3. */
 .numdisp__match {
-  display: flex; align-items: baseline; gap: var(--sp-3);
-  text-align: left;
+  display: flex; align-items: baseline; justify-content: center; gap: var(--sp-3);
   min-height: calc((var(--t-body) * var(--fs) * var(--lh-normal)));
   opacity: 0;
   transition: opacity var(--d-fast) var(--e-standard);
@@ -93,29 +92,38 @@
 }
 .dialpad__key {
   width: var(--key-size); height: var(--key-size);
-  border-radius: var(--r-circle);
-  display: grid; place-items: center;
-  background: transparent;      /* bare digits, no key plates — per the deck */
+  border-radius: var(--r-lg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: var(--surface-2);
   color: var(--fg);
   transition: background var(--d-instant) var(--e-standard), transform var(--d-instant) var(--e-standard);
 }
-.dialpad__key.is-down { background: var(--surface-2); transform: scale(.94); }
+.dialpad__key.is-down { background: var(--surface-4); transform: scale(.96); }
 .dialpad__digit {
   font-size: calc(var(--key-digit) * var(--fs));
   font-weight: var(--w-medium);
   line-height: 1;
 }
-.dialpad__letters { display: none; }   /* T9 still works; the hint is noise */
+.dialpad__letters { color: var(--fg-quaternary); letter-spacing: var(--tr-widest); }
 
 /* ---- action row: [ add contact ] [ CALL ] [ backspace ] -------------------
    All three are mounted permanently; inapplicable ones fade via opacity, not
    display:none — see DialerScreen.js. The grid keeps its column widths so the
-   green button never slides sideways as you type. ------------------------ */
+   green button never slides sideways as you type. The call button is a wide
+   pill spanning the centre column, not a circle, so it reads as clearly
+   primary against the two flanking icon buttons. Its column is capped to the
+   keypad's own rendered width so the whole deck shares one set of edges. */
 .dialer__actions {
   display: grid;
-  grid-template-columns: var(--dial-action) var(--dial-call) var(--dial-action);
-  align-items: center; justify-items: center;
-  gap: var(--sp-8);
+  grid-template-columns: var(--dial-action) 1fr var(--dial-action);
+  align-items: center; justify-items: stretch;
+  gap: var(--sp-6);
+  /* width, not just max-width: .dialer__deck centers its children by
+     shrink-to-fit (align-items:center, not stretch), so without a definite
+     width the 1fr column has nothing to expand into and collapses to its
+     icon's content size instead of filling the row. */
+  width: 100%;
+  max-width: calc(3 * var(--key-size) + 2 * var(--key-gap));
   margin-inline: auto;
 }
 .dial-action {
@@ -132,15 +140,19 @@
    Mounted once, never removed. Only tone/disabled change — see
    DialCallButton.js for why this replaced the dock's context row here. */
 .dialcall {
-  width: var(--dial-call); height: var(--dial-call);
-  border-radius: var(--r-circle); display: grid; place-items: center;
+  /* min-width guards --touch-min at narrow viewports, where the keypad's own
+     width budget (--key-size shrinks under its vw/vh clamp) can leave the
+     1fr column less than 48px once the two flanking circles and gaps are
+     subtracted — see tools/audit.mjs at 360×640. */
+  width: 100%; min-width: var(--touch-min); height: var(--dial-call);
+  border-radius: var(--r-pill); display: grid; place-items: center;
   background: var(--positive); color: #fff;   /* the one colour on this screen */
   box-shadow: 0 6px 20px rgba(22,198,90,.32);
   transition: opacity var(--d-fast) var(--e-standard), transform var(--d-fast) var(--e-standard),
               background var(--d-base) var(--e-standard), box-shadow var(--d-base) var(--e-standard);
 }
-.dialcall svg { width: 28px; height: 28px; }
-.dialcall:active:not(:disabled) { transform: scale(.96); }
+.dialcall svg { width: 26px; height: 26px; }
+.dialcall:active:not(:disabled) { transform: scale(.97); }
 .dialcall:disabled { opacity: .34; box-shadow: none; }
 .dialcall[data-tone="warn"]    { background: var(--warn);    color: #241800; box-shadow: none; }
 .dialcall[data-tone="neutral"] { background: var(--surface-4); color: var(--fg); box-shadow: none; }

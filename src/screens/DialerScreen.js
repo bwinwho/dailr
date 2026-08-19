@@ -6,16 +6,17 @@
  * finds people by name — so stacking a second search field above it would be
  * redundant chrome in the most valuable real estate on the screen.
  *
- * Top of Mind and an empty-state recents list used to render above the
- * keypad; both are gone (Project Clean Slate — they duplicated the Recents
- * tab and were noise the user asked to remove twice). The keypad is not
- * literally centred in the viewport: that would make the deck stop being
- * bottom-anchored, which is exactly what caused the 122px layout-shift bug
- * Phase 1 fixed. Instead the deck stays pinned to the bottom slot, and with
- * nothing left above it .dialer__scroll is simply empty — so the keypad
- * already sits in a vertically centred lower field, with real emptiness
- * above it and zero jitter. Horizontal centring of the keypad and action row
- * is real (CSS margin-inline: auto).
+ * The old horizontal-scroll Top of Mind strip and a separate "Just now"
+ * recents list are gone — they duplicated the Recents tab. A compact
+ * quick-dial list survives in their place, reusing the exact same row
+ * component as T9 matches (see renderSuggestions): when nothing is typed it
+ * shows up to 3 frequent contacts; the moment you type, it becomes filtered
+ * matches. One list, one visual language, driven by what's typed. The keypad
+ * is not literally centred in the viewport: that would make the deck stop
+ * being bottom-anchored, which is exactly what caused the 122px layout-shift
+ * bug Phase 1 fixed. Instead the deck stays pinned to the bottom slot.
+ * Horizontal centring of the keypad and action row is real (CSS
+ * margin-inline: auto).
  */
 import { h, toggle, reconcile, on } from '../core/dom.js';
 import { icon } from '../core/icons.js';
@@ -24,7 +25,7 @@ import { DialPad } from '../components/dialer/DialPad.js';
 import { DialCallButton, dialCallModel } from '../components/dialer/DialCallButton.js';
 import { Avatar } from '../components/primitives/Avatar.js';
 import { formatNumber } from '../core/format.js';
-import { selDialerMatch } from '../state/selectors.js';
+import { selDialerMatch, selTopOfMind } from '../state/selectors.js';
 import haptics from '../core/haptics.js';
 
 export function DialerScreen({ store, actions }) {
@@ -86,9 +87,17 @@ export function DialerScreen({ store, actions }) {
 
   function renderSuggestions(state) {
     const match = selDialerMatch(state);
-    const rows = [];
+    let rows = [];
 
-    if (match.state === 'contact') {
+    if (!state.dialer.input) {
+      // Nothing typed: quick-dial the people you actually call, instead of
+      // leaving the top of the screen empty.
+      rows = selTopOfMind(state).slice(0, 3).map((p) => ({
+        id: `t_${p.key}`, kind: 'contact',
+        contact: { displayName: p.displayName, avatar: p.avatar, key: p.key },
+        number: { value: p.primaryNumber, label: null },
+      }));
+    } else if (match.state === 'contact') {
       for (const m of match.matches) {
         rows.push({ id: `c_${m.contact.key}_${m.number.value}`, kind: 'contact', contact: m.contact, number: m.number });
       }
