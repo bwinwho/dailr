@@ -4,34 +4,68 @@
  * The product's signature object. A minimal floating card that EXPANDS in
  * place into an action layer rather than navigating away.
  *
- * Reading order is deliberate and inverted from a normal call log:
+ * ---------------------------------------------------------------------------
+ * REBUILT — see docs/UI_REVISION_PLAN.md § D1.
  *
- *      CHHETRI                 ← surname, small, above
+ * The original version read:
+ *
+ *      CHHETRI                 ← surname
  *      AVNI      10 minutes ago← given name, large; time as a sibling
  *      She called you.         ← the event, as a sentence
+ *      [ 6M ]                  ← duration chip
+ *      │ Red skirt — Amazon    ← note
  *
- * You read the person first and the event second, because that is the order
- * you actually care about. Telecom metadata (arrows, durations, SIM) is
- * demoted to chips and only shown when the user asks for it.
+ * five rows, most of a 360px screen eaten by three cards. Measured: 126–195px
+ * per card, 8px gaps, "Mr. Prasad" and phone numbers clipped mid-word. Every
+ * fix to one row broke the next, because the shape itself was wrong for
+ * anything but the shortest names.
+ *
+ * This version is two rows, three at most:
+ *
+ *      ◉  AVNI                              10m   ☏
+ *         She called you · 6m
+ *         │ Red skirt — Amazon
+ *
+ * The surname is gone from the card — it survives on History, the contact
+ * sheet and the call screens, where there is room for it. Duration and status
+ * fold into one dim meta line instead of a chip each. Exactly one chip
+ * survives: suspected spam, because it needs a shield and real prominence.
+ * "Trusted" and duration chips are gone; they were never load-bearing here.
+ *
+ * The name is sized by measurement (core/dom.js › fitText), not by picking
+ * between three hard buckets tuned for "AVNI" and going ragged on anyone
+ * whose name doesn't happen to fit one of them.
+ * ---------------------------------------------------------------------------
  */
-import { h, setText, toggle, on, afterTransition } from '../../core/dom.js';
+import { h, setText, toggle, on, afterTransition, fitText } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
-import { relativeTime, callSentence, dispositionTag, spokenDuration, plural } from '../../core/format.js';
+import { relativeTime, callSentence, spokenDuration, isMissed } from '../../core/format.js';
 import { Avatar } from '../primitives/Avatar.js';
 import haptics from '../../core/haptics.js';
+
+const NAME_MAX = 26;
+const NAME_MIN = 16;
+// Numeric glyphs run wider per character than the condensed display face, so
+// an unsaved number needs a shorter range to fit the same column.
+const NUMBER_MAX = 19;
+const NUMBER_MIN = 14;
 
 export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction, onSwipe }) {
   let props = { row, expanded, settings };
 
-  /* ---- identity block --------------------------------------------------- */
-  const eyebrow = h('div.rcard__eyebrow.t-eyebrow');
+  /* ---- head: avatar | name + time | call, with meta/note below ---------- */
   const first = h('h3.rcard__name');
   const when = h('span.rcard__when.t-body-sm.c-3');
-  const sentence = h('p.rcard__sentence.t-body-sm.c-2');
-  const chips = h('div.rcard__chips');
+  const meta = h('p.rcard__meta.t-body-sm');
+  const chipSlot = h('div.rcard__chip');
   const noteLine = h('div.rcard__note.t-body-sm');
 
-  const avatar = Avatar({ size: 'md', name: '', src: null });
+  // 'sm' (38px), matching every other dense list row in the app (Contacts'
+  // .crow uses the same size). 'md' (54px) sets a hard floor on every row's
+  // height regardless of how little text is in it — on a 3-line card with a
+  // note that alone was ~20px of the difference between the measured height
+  // and the plan's target.
+  const avatar = Avatar({ size: 'sm', name: '', src: null });
 
   const callBtn = h('button.rcard__call', {
     type: 'button', aria: { label: 'Call' },
@@ -39,17 +73,17 @@ export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction
   }, h('span', { html: icon('phone') }));
 
   const head = h('div.rcard__head', null,
-    h('div.rcard__id.grow', null,
-      eyebrow,
-      h('div.rcard__nameline', null, first, when),
-      sentence,
-      chips,
-      noteLine),
-    h('div.rcard__aside', null, callBtn, avatar.el));
+    avatar.el,
+    first,
+    when,
+    callBtn,
+    meta,
+    chipSlot,
+    noteLine);
 
   /* ---- expansion layer --------------------------------------------------
      Rendered once and revealed by height, so expanding does not re-create
-     nodes mid-animation. */
+     nodes mid-animation. Actions are full 44px rows now, not text links. */
   const actionList = h('div.rcard__actions');
   const quickIcons = h('div.rcard__quick');
   const expansion = h('div.rcard__expansion', { aria: { hidden: 'true' } },
@@ -113,18 +147,20 @@ export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction
     quickIcons.textContent = '';
 
     const items = [
-      { id: 'text',    label: 'Send a text' },
-      { id: 'history', label: 'History' },
-      { id: 'remind',  label: 'Remind me' },
+      { id: 'text', ic: 'message', label: 'Send a text' },
+      { id: 'history', ic: 'clock', label: 'History' },
+      { id: 'remind', ic: 'bell', label: 'Remind me' },
     ];
-    if (row.tier === 'unknown') items.push({ id: 'save', label: 'Save number' });
-    if (row.view) items.push({ id: 'profile', label: 'Open contact' });
+    if (row.tier === 'unknown') items.push({ id: 'save', ic: 'plus', label: 'Save number' });
+    if (row.view) items.push({ id: 'profile', ic: 'person', label: 'Open contact' });
 
     for (const it of items) {
-      actionList.appendChild(h('button.rcard__action.t-label', {
-        type: 'button', text: it.label,
+      actionList.appendChild(h('button.rcard__action', {
+        type: 'button',
         on: { click: (e) => { e.stopPropagation(); haptics.fire('tap'); onAction?.(it.id, row); } },
-      }));
+      },
+      h('span.rcard__action-icon', { html: icon(it.ic) }),
+      h('span.t-body', { text: it.label })));
     }
 
     const quick = [
@@ -140,74 +176,66 @@ export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction
   }
 
   /**
-   * Chips are capped at three. A card carrying five chips is a card nobody
-   * reads — the cap forces the most consequential fact to win.
+   * One dim line: the event as a sentence, plus duration, plus a callback
+   * nudge when one applies. Coloured by what actually needs attention —
+   * everything else stays the same quiet secondary tone as the rest of the
+   * card, which is what makes the coloured ones legible at a glance.
    */
-  const CHIP_LIMIT = 3;
-
-  function renderChips(row, settings) {
-    chips.textContent = '';
-    let used = 0;
-    const add = (label, tone, iconName) => {
-      if (used >= CHIP_LIMIT) return;
-      used++;
-      chips.appendChild(
-        h(`span.chip.chip--${tone}`, null,
-          iconName ? h('span.chip__icon', { html: icon(iconName) }) : null,
-          h('span.chip__label', { text: label })));
-    };
-
-    // Priority order: safety, obligation, outcome, then metadata.
-    if (row.spam && row.spam.score >= 0.75 && !row.spam.trusted) add('Likely spam', 'negative', 'shield');
-    else if (row.view?.trusted) add('Trusted', 'positive', 'shieldOk');
-
-    if (row.owed) add(row.owed.count > 1 ? `${row.owed.count} to return` : 'Call back', 'warn', 'return');
-
-    const tag = dispositionTag(row.entry);
-    if (tag) add(tag.label, tag.tone === 'negative' ? 'negative' : tag.tone === 'warn' ? 'warn' : 'neutral');
+  function renderMeta(row, settings) {
+    const parts = [];
+    parts.push(settings.recents.naturalLanguage
+      ? callSentence(row.entry, row.view)
+      : row.entry.disposition.replace(/-/g, ' '));
 
     if (settings.recents.showDuration && row.entry.durationSec > 0) {
-      add(spokenDuration(row.entry.durationSec, { short: true }), 'neutral', 'clock');
+      parts.push(spokenDuration(row.entry.durationSec, { short: true }));
     }
-    if (settings.recents.showSim && row.entry.simId) add(row.entry.simId.toUpperCase(), 'neutral', 'sim');
+    if (row.owed) parts.push(row.owed.count > 1 ? `${row.owed.count} to return` : 'Call back');
 
-    toggle(chips, 'is-hidden', !chips.childElementCount);
+    setText(meta, parts.join(' · '));
 
-    // The note is not a chip. It is the most human thing on the card, so it
-    // gets its own line and is never squeezed out by a duration badge.
-    setText(noteLine, settings.recents.showNotes && row.note ? row.note : '');
-    toggle(noteLine, 'is-hidden', !(settings.recents.showNotes && row.note));
+    const missed = isMissed(row.entry);
+    meta.classList.remove('c-2', 'c-warn', 'c-neg');
+    meta.classList.add(row.owed || missed ? 'c-warn' : 'c-2');
+  }
+
+  /** At most one chip: suspected spam. Everything else lives in the meta line. */
+  function renderChip(row) {
+    chipSlot.textContent = '';
+    const spammy = row.spam && row.spam.score >= 0.75 && !row.spam.trusted;
+    toggle(chipSlot, 'is-hidden', !spammy);
+    if (!spammy) return;
+    chipSlot.appendChild(h('span.chip.chip--negative', null,
+      h('span.chip__icon', { html: icon('shield') }),
+      h('span.chip__label', { text: 'Likely spam' })));
   }
 
   function update(next = {}) {
     props = { ...props, ...next };
     const { row, settings } = props;
 
-    setText(eyebrow, row.view?.surname || (row.tier === 'dialr' ? row.profile?.surname || '' : ''));
-    toggle(eyebrow, 'is-hidden', !eyebrow.textContent);
+    const headline = row.view?.firstName
+      || (row.tier === 'dialr' ? row.profile?.firstName : null)
+      || row.displayName;
 
-    const headline = row.view?.firstName || (row.tier === 'dialr' ? row.profile?.firstName : null) || row.displayName;
     setText(first, headline);
-    toggle(first, 'rcard__name--big', settings.appearance.bigNames);
-    // Long names and raw phone numbers step down a size rather than truncating
-    // to three characters — "BLIN…" tells you nothing.
-    // Calibrated against the narrowest card (≈240px of usable width at 360dp).
-    first.dataset.len = row.tier === 'unknown' ? 'number'
-      : headline.length > 11 ? 'xlong'
-      : headline.length > 6 ? 'long'
-      : 'short';
+    // A raw phone number is data, not a name — it leaves display type
+    // entirely (numeric font, no uppercase) but is still measured to fit,
+    // just with its own range: digits run wider per glyph than the
+    // condensed display face.
+    const isNumber = row.tier === 'unknown';
+    toggle(first, 'rcard__name--number', isNumber);
+    fitText(first, isNumber ? { max: NUMBER_MAX, min: NUMBER_MIN } : { max: NAME_MAX, min: NAME_MIN });
 
     setText(when, relativeTime(row.entry.startedAt, Date.now(), { compact: true }));
 
-    setText(sentence, settings.recents.naturalLanguage
-      ? callSentence(row.entry, row.view)
-      : `${row.entry.disposition.replace(/-/g, ' ')} · ${spokenDuration(row.entry.durationSec, { short: true })}`);
+    renderMeta(row, settings);
+    renderChip(row);
 
-    renderChips(row, settings);
+    setText(noteLine, settings.recents.showNotes && row.note ? row.note : '');
+    toggle(noteLine, 'is-hidden', !(settings.recents.showNotes && row.note));
 
     avatar.update({
-      // An unknown number has no initials worth showing; the Avatar renders a
-      // neutral mark instead of the first two digits.
       name: row.tier === 'unknown' ? '#' : row.displayName,
       src: row.view?.avatar || row.profile?.avatarUrl || null,
       ring: row.tier === 'dialr' || !!row.view?.isDialrUser,

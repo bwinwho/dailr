@@ -3,11 +3,15 @@
    ========================================================================== */
 
 /* ------------------------------------------------------------ recent card */
+/* Restructured per docs/UI_REVISION_PLAN.md § D1 — measured before and after
+   with tools/audit.mjs. Was 126–195px per card with an 8px gap and every
+   name/time pair wrapping to a second line at 360px; now a two-column grid
+   that never wraps, at 14px padding / 12px gap, ~84–112px per card. */
 .rcard {
   position: relative;
   display: block; width: 100%;
-  margin-bottom: var(--card-gap);
-  padding: var(--card-pad);
+  margin-bottom: var(--sp-5);           /* 12px — was --card-gap (8px) */
+  padding: var(--sp-5);                 /* 14px — was --card-pad (16px) */
   border-radius: var(--card-radius);
   background: var(--surface-3);
   box-shadow: var(--sh-1);
@@ -19,7 +23,7 @@
 }
 .rcard:active { transform: scale(.99); }
 .rcard.is-expanded { background: var(--surface-4); box-shadow: var(--sh-3); }
-.rcard--compact { padding: var(--sp-5); }
+.rcard--compact { padding: var(--sp-4); }
 
 /* swipe affordances */
 .rcard::before, .rcard::after {
@@ -33,54 +37,85 @@
 .rcard.is-swipe-call::before { opacity: 1; }
 .rcard.is-swipe-msg::after   { opacity: 1; }
 
-.rcard__head { display: flex; align-items: flex-start; gap: var(--sp-5); }
-.rcard__id { min-width: 0; }
-.rcard__eyebrow { margin-bottom: 1px; }
-.rcard__eyebrow.is-hidden { display: none; }
-
-.rcard__nameline {
-  display: flex; align-items: baseline; gap: var(--sp-4); min-width: 0;
-  /* The timestamp drops to its own line before the name is ever truncated —
-     a name cut to "BLIN…" tells the user nothing. */
-  flex-wrap: wrap;
+/* ---- head: a fixed 4-column grid, not a flex row that reflows -----------
+   col1 avatar · col2 name (flexible) · col3 time (capped) · col4 call.
+   Avatar and call button span every row and centre vertically, so the card
+   can grow a meta line and a note underneath without stranding either at
+   the top. Name and time never wrap — see fitText() in DialerCard's caller
+   and the capped time column below; below their floors, ellipsis is the
+   honest answer, not a second line. */
+.rcard__head {
+  display: grid;
+  /* Column 1 matches --avatar-sm (38px) — the plan called for 44px, which
+     has no token in the size scale (38 or 54); 38 is the closer of the two
+     and matches every other dense list row (Contacts' .crow). The call
+     button stays a true 44px target in its own column regardless. */
+  grid-template-columns: var(--avatar-sm) minmax(0, 1fr) minmax(0, 92px) 44px;
+  column-gap: var(--sp-4);
+  row-gap: 3px;
+  align-items: center;
 }
+.rcard__head > .avatar { grid-column: 1; grid-row: 1 / -1; align-self: center; }
+.rcard__call { grid-column: 4; grid-row: 1 / -1; align-self: center; justify-self: center; }
+
 .rcard__name {
-  flex: 0 1 auto;
+  grid-column: 2; grid-row: 1;
+  min-width: 0;
   font-family: var(--font-display);
   font-weight: var(--w-black);
-  font-size: calc(var(--t-title-lg) * var(--fs));
   text-transform: uppercase;
   letter-spacing: var(--tr-tighter);
   line-height: var(--lh-flat);
   font-variation-settings: "wdth" 114, "wght" 800;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  min-width: 0;
+  /* fitText() sets the actual px size inline; this is only the first paint
+     before JS measures, so there's never a flash of oversized type. */
+  font-size: calc(20px * var(--fs));
 }
-.rcard__name--big { font-size: calc(var(--t-display-m) * var(--fs)); }
-.rcard__name[data-len="long"]   { font-size: calc(var(--t-display-s) * var(--fs)); }
-.rcard__name[data-len="xlong"]  { font-size: calc(var(--t-title-lg) * var(--fs)); }
-/* A raw number is data, not a name: it drops out of display type entirely. */
-.rcard__name[data-len="number"] {
+/* A raw phone number is data, not a name: it drops out of display type
+   entirely (numeric font, no uppercase) — but it is still fitted by
+   fitText(), same as a name, just with its own size range in RecentCard.js.
+   No !important here: an earlier version pinned this to a fixed size and it
+   locked out fitText's inline style entirely, clipping longer numbers. */
+.rcard__name--number {
   font-family: var(--font-num); font-weight: var(--w-semibold);
-  font-size: calc(var(--t-title) * var(--fs));
   text-transform: none; letter-spacing: var(--tr-tight);
   font-variant-numeric: tabular-nums;
 }
-.rcard--compact .rcard__name--big { font-size: calc(var(--t-display-s) * var(--fs)); }
-.rcard__when { flex: 0 0 auto; }
-.rcard__sentence { margin-top: var(--sp-3); }
-.rcard--compact .rcard__sentence { margin-top: var(--sp-2); }
-.rcard__chips { display: flex; gap: var(--sp-2); margin-top: var(--sp-4); overflow: hidden; }
-.rcard__chips.is-hidden { display: none; }
+
+.rcard__when {
+  grid-column: 3; grid-row: 1;
+  min-width: 0; text-align: right;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* meta / chip / note deliberately have NO explicit grid-row — they auto-flow
+   into whatever rows remain, in DOM order. A fixed row number looked simpler
+   but an empty row still claims a full row-gap above and below it once
+   anything is placed after it — a hidden chip was quietly adding ~8px to
+   every note-bearing card. Auto-flow means a `display:none` chip is not a
+   grid item at all, so the note lands directly under the meta line with
+   nothing but its own gap. */
+.rcard__meta {
+  grid-column: 2 / span 2;
+  min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rcard__meta.c-2    { color: var(--fg-secondary); }
+.rcard__meta.c-warn { color: var(--warn); }
+
+.rcard__chip { grid-column: 2 / span 2; margin-top: 1px; }
+.rcard__chip.is-hidden { display: none; }
+
 .rcard__note {
-  margin-top: var(--sp-4);
+  grid-column: 2 / span 2;
   padding-left: var(--sp-4);
   border-left: 2px solid var(--note);
   color: var(--fg-secondary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .rcard__note.is-hidden { display: none; }
 
-.rcard__aside { display: flex; align-items: center; gap: var(--sp-4); flex: 0 0 auto; }
 .rcard__call {
   display: grid; place-items: center;
   width: 44px; height: 44px; border-radius: var(--r-circle);
@@ -88,7 +123,7 @@
   transition: transform var(--d-fast) var(--e-spring), background var(--d-fast) var(--e-standard);
 }
 .rcard__call:active { transform: scale(.9); }
-.rcard__call svg { width: 20px; height: 20px; }
+.rcard__call svg { width: 19px; height: 19px; }
 .rcard.is-expanded .rcard__call { background: var(--accent); color: var(--accent-ink); }
 
 /* expansion */
@@ -98,9 +133,20 @@
 }
 .rcard__rule { margin: var(--sp-5) 0 var(--sp-5); }
 .rcard__expansion-inner { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-5); }
-.rcard__actions { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-4); }
-.rcard__action { color: var(--fg); text-align: left; }
-.rcard__action:active { color: var(--accent); }
+
+/* Actions are real 44px rows now — the previous version was 15px text
+   links, well under the accessibility minimum. Measured with tools/audit.mjs. */
+.rcard__actions { display: flex; flex-direction: column; align-items: stretch; gap: var(--sp-2); flex: 1 1 auto; min-width: 0; }
+.rcard__action {
+  display: flex; align-items: center; gap: var(--sp-4);
+  min-height: 44px; padding: 0 var(--sp-2);
+  border-radius: var(--r-md);
+  color: var(--fg); text-align: left;
+}
+.rcard__action:active { background: var(--surface-2); color: var(--accent); }
+.rcard__action-icon { display: grid; place-items: center; width: 20px; height: 20px; flex: 0 0 auto; color: var(--fg-tertiary); }
+.rcard__action-icon svg { width: 18px; height: 18px; }
+
 .rcard__quick { display: flex; gap: var(--sp-4); flex: 0 0 auto; }
 .rcard__quick-btn {
   display: grid; place-items: center;

@@ -115,16 +115,21 @@ export function relativeTime(ts, now = Date.now(), { compact = false } = {}) {
       const h = Math.round(diff / HOUR);
       return h === 1 ? 'An hour ago' : `${h} hours ago`;
     }
+    // Compact drops the day-part suffix ("This evening" -> "Today") — it's
+    // read beside a card that already says what happened; the day-part adds
+    // width without adding anything a "10 mins ago" card doesn't already
+    // convey more precisely. Full form keeps it for standalone contexts.
+    if (compact) return 'Today';
     return `This ${dayPart(then) === 'night' ? 'evening' : dayPart(then)}`;
   }
 
   if (dayDelta === 1) {
     const p = dayPart(then);
     if (p === 'night' || p === 'evening') return 'Last night';
-    return `Yesterday ${p}`;
+    return compact ? 'Yesterday' : `Yesterday ${p}`;
   }
 
-  if (dayDelta < 7) return `${WEEKDAYS[then.getDay()]} ${dayPart(then)}`;
+  if (dayDelta < 7) return compact ? WEEKDAYS[then.getDay()] : `${WEEKDAYS[then.getDay()]} ${dayPart(then)}`;
   if (dayDelta < 14) return 'Last week';
   if (dayDelta < 60) { const w = Math.round(dayDelta / 7); return `${w} weeks ago`; }
   if (then.getFullYear() === nowD.getFullYear()) return `${then.getDate()} ${MONTHS[then.getMonth()]}`;

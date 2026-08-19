@@ -193,6 +193,48 @@ export function reconcile(container, items, { key, create, store }) {
 }
 
 /** Wait for the next paint. Used to make CSS transitions actually run. */
+/**
+ * Shrink `el`'s font-size until its content fits its own box on one line, down
+ * to `min`. Measured, not guessed.
+ *
+ * Replaces the earlier approach of hard-coded size buckets keyed off character
+ * count (short/long/xlong), which went ragged the moment a name landed between
+ * the tuned breakpoints — "BLIN…" clipping at 178px of 204px needed, while a
+ * shorter name two buckets away sat at a completely different size for no
+ * visible reason. See docs/UI_REVISION_PLAN.md § D2.
+ *
+ * `max` and `min` are base px sizes at `--fs: 1`; the current accessibility
+ * text-scale is read from the root and applied to both, so fitting still
+ * honours Settings ▸ Accessibility ▸ Text size.
+ *
+ * Below `min`, text-overflow ellipsis takes over (set that up in CSS) — a
+ * genuinely too-long string has no better answer than a shrink followed by an
+ * honest truncation, and the floor is what keeps type from going illegibly
+ * small trying to avoid it.
+ *
+ * Safe to call on a freshly-created, not-yet-appended element: if it has no
+ * measurable width yet, one retry is scheduled for next frame instead of
+ * silently leaving the font at `max`.
+ *
+ * @param {HTMLElement} el
+ * @param {{max:number, min:number, step?:number}} opts
+ */
+export function fitText(el, { max, min, step = 1 } = {}) {
+  const fit = () => {
+    const fs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fs')) || 1;
+    const maxPx = max * fs, minPx = min * fs;
+    el.style.fontSize = `${maxPx}px`;
+    if (!el.clientWidth) return false;
+    let size = maxPx;
+    while (el.scrollWidth > el.clientWidth + 0.5 && size > minPx) {
+      size -= step;
+      el.style.fontSize = `${size}px`;
+    }
+    return true;
+  };
+  if (!fit()) requestAnimationFrame(fit);
+}
+
 export function nextFrame(fn) {
   return new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(() => {
     fn?.(); res();
