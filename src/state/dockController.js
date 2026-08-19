@@ -18,7 +18,7 @@
  *     one wins and the other becomes a secondary icon.
  */
 
-import { selDialerMatch, selRecentCounts, selContactsByKey, resolveIdentity } from './selectors.js';
+import { selRecentCounts, selContactsByKey } from './selectors.js';
 import { formatNumber, nameParts } from '../core/format.js';
 
 export const NAV_ITEMS = [
@@ -59,102 +59,16 @@ export function selectDockModel(state) {
   }
 
   switch (state.app.tab) {
-    case 'dialer':   return dialerContext(state, base);
+    // The dialer owns its own call action now (a persistent button under the
+    // keypad — see DialCallButton). The dock's job there is navigation only:
+    // a context row that grows and shrinks as you type would move the keypad
+    // itself, since both sit in the same bottom-anchored column. Measured at
+    // 122px of keypad drift before this was nav-only; see tools/audit.mjs.
+    case 'dialer':   return base;
     case 'recents':  return recentsContext(state, base);
     case 'contacts': return contactsContext(state, base);
     default:         return base;
   }
-}
-
-/* ---------------------------------------------------------------- dialer  */
-
-function dialerContext(state, base) {
-  const match = selDialerMatch(state);
-
-  switch (match.state) {
-    case 'empty': {
-      // Nothing typed: offer the one thing a dialer is always asked for.
-      const last = state.directory.callLog[0];
-      if (!last) return base;
-      const id = resolveIdentity(state, last.number, { allowLookup: false });
-      return {
-        ...base, mode: 'nav',
-        secondary: [{ id: 'redial', icon: 'redial', label: `Redial ${id.first || formatNumber(last.number)}`,
-                      intent: { type: 'call', number: last.number } }],
-      };
-    }
-
-    case 'contact': {
-      const v = match.primary.view;
-      return {
-        ...base, mode: 'action',
-        primary: {
-          id: `call-${v.key}`,
-          label: `Call ${v.firstName}`,
-          sub: v.numbers.length > 1 ? labelFor(v, match.primary.number) : null,
-          icon: 'phone', tone: 'accent',
-          intent: { type: 'call', number: match.primary.number, contactKey: v.key },
-        },
-        secondary: [
-          { id: 'message', icon: 'message', label: `Message ${v.firstName}`,
-            intent: { type: 'message', number: match.primary.number } },
-        ],
-      };
-    }
-
-    case 'dialr': {
-      const p = match.primary.profile;
-      const name = [p.firstName, p.surname].filter(Boolean).join(' ');
-      return {
-        ...base, mode: 'action',
-        primary: {
-          id: 'call-dialr',
-          label: `Call ${p.firstName}`,
-          sub: 'On DIALR — not in your contacts',
-          icon: 'phone', tone: 'accent',
-          intent: { type: 'call', number: match.primary.number },
-        },
-        secondary: [
-          { id: 'save', icon: 'plus', label: `Save ${name}`,
-            intent: { type: 'add-contact', number: match.primary.number, suggestName: name } },
-        ],
-      };
-    }
-
-    case 'unknown': {
-      const spammy = match.spam && match.spam.score >= 0.75;
-      return {
-        ...base, mode: 'action',
-        primary: {
-          id: 'call-unknown',
-          label: `Call ${formatNumber(match.input)}`,
-          sub: spammy ? 'Reported as spam' : null,
-          icon: 'phone',
-          tone: spammy ? 'warn' : 'accent',
-          intent: { type: 'call', number: match.input },
-        },
-        secondary: [
-          { id: 'add', icon: 'plus', label: 'Add contact',
-            intent: { type: 'add-contact', number: match.input } },
-        ],
-      };
-    }
-
-    case 'code':
-      return {
-        ...base, mode: 'action',
-        primary: { id: 'run-code', label: 'Run code', sub: match.input, icon: 'phone', tone: 'neutral',
-                   intent: { type: 'call', number: match.input } },
-      };
-
-    default:
-      return base;
-  }
-}
-
-function labelFor(view, number) {
-  const n = view.numbers.find((x) => x.value === number);
-  return n?.label || null;
 }
 
 /* --------------------------------------------------------------- recents  */

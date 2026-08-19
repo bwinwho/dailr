@@ -147,6 +147,16 @@ export function createActions({ store, services, theme }) {
     }
   }
 
+  /** Force the SIM sheet open regardless of the default-SIM setting — the
+   *  dial button's long-press escape hatch for "just this once, the other one". */
+  function openSimPicker(number, contactKey) {
+    const s = state();
+    if (s.directory.sims.length < 2) return;
+    const view = contactKey ? selContactsByKey(s).get(contactKey) : null;
+    pendingSim = { number, contactKey, name: view?.firstName };
+    pushOverlay('sim', { number, contactKey, name: view?.firstName, preferred: s.settings.calling.defaultSim });
+  }
+
   function pickSim(simId, remember, props) {
     popOverlay();
     if (remember && props.contactKey) {
@@ -816,7 +826,7 @@ export function createActions({ store, services, theme }) {
     dialerAppend, dialerBackspace, dialerClear, dialerSet, dialerLongPress,
     // calling
     call, answer, hangup, decline, toggleMute, toggleHold, cycleAudio, sendDtmf,
-    swapCalls, mergeCalls, toggleKeypad, setNoteDraft, addCallFlow, clearPostCall, pickSim,
+    swapCalls, mergeCalls, toggleKeypad, setNoteDraft, addCallFlow, clearPostCall, pickSim, openSimPicker,
     // flows
     openContact, openHistory, openRewind, addContact, openQuickReply, openReminder,
     sendQuickReply, customReply, createReminder, recentAction, historyAction,

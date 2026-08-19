@@ -14,6 +14,7 @@ import { h, setText, toggle, reconcile } from '../core/dom.js';
 import { icon } from '../core/icons.js';
 import { NumberDisplay } from '../components/dialer/NumberDisplay.js';
 import { DialPad } from '../components/dialer/DialPad.js';
+import { DialCallButton, dialCallModel } from '../components/dialer/DialCallButton.js';
 import { Avatar } from '../components/primitives/Avatar.js';
 import { EmptyState } from '../components/primitives/States.js';
 import { formatNumber, relativeTime, callSentence } from '../core/format.js';
@@ -44,8 +45,15 @@ export function DialerScreen({ store, actions }) {
     onLongPress: (d) => actions.dialerLongPress(d),
   });
 
-  /** The bottom slot for this tab: readout + keypad, in the thumb zone. */
-  const bottom = h('div.dialer__deck', null, numberDisplay.el, pad.el);
+  const callButton = DialCallButton({
+    onCall: ({ number, contactKey }) => actions.call(number, contactKey),
+    onLongPress: ({ number, contactKey }) => actions.openSimPicker(number, contactKey),
+  });
+
+  /** The bottom slot for this tab: readout + keypad + call, in the thumb zone.
+   *  This whole block is mounted once and never leaves the layout — see
+   *  DialCallButton.js for why that is the point. */
+  const bottom = h('div.dialer__deck', null, numberDisplay.el, pad.el, callButton.el);
 
   const el = h('section.screen.screen--dialer', { id: 'screen-dialer', role: 'tabpanel', aria: { label: 'Keypad' } },
     scroll);
@@ -139,6 +147,8 @@ export function DialerScreen({ store, actions }) {
       hapticsOn: state.settings.calling.dialPadHaptics,
     });
 
+    callButton.update(dialCallModel(match));
+
     renderEmpty(state);
     renderTopOfMind(state);
     renderSuggestions(state);
@@ -147,7 +157,7 @@ export function DialerScreen({ store, actions }) {
 
   return {
     el, bottom, update,
-    destroy() { numberDisplay.destroy(); pad.destroy(); },
+    destroy() { numberDisplay.destroy(); pad.destroy(); callButton.destroy(); },
   };
 }
 

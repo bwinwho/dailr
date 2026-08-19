@@ -1,12 +1,12 @@
 /* ============================================================================
    DIALR — FLOATING DOCK + SEARCH
    The dock is two stacked rows. Navigation (bottom) is permanent; context
-   (top) grows out of it. See src/components/dock/FloatingDock.js for why.
+   (top) floats above it. See src/components/dock/FloatingDock.js for why.
    ========================================================================== */
 
 .dock {
+  position: relative;
   display: flex; flex-direction: column;
-  gap: var(--dock-gap);
   transition: transform var(--d-base) var(--e-spring), opacity var(--d-base) var(--e-standard);
 }
 .dock.is-hidden {
@@ -15,22 +15,27 @@
   pointer-events: none;
 }
 
-/* ---- context row --------------------------------------------------------
-   Collapsed to zero height and clipped, so it grows rather than pops. */
+/* ---- context row ---------------------------------------------------------
+   Absolutely positioned above the nav row, so it can never affect the dock's
+   own box height. It used to be a flex sibling that grew via max-height —
+   which meant every appearance pushed the bottom-anchored column above it
+   (the keypad, on the dialer) upward. Measured at 122px of drift while
+   typing six digits; see tools/audit.mjs and docs/UI_REVISION_PLAN.md § D3.
+   The dock's height is now the nav row's height, full stop, on every screen. */
 .dock__context {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: calc(100% + var(--dock-gap));
   display: flex; align-items: stretch; gap: var(--dock-gap);
-  max-height: 0;
   opacity: 0;
-  transform: translate3d(0, 10px, 0);
-  overflow: hidden;
-  transition: max-height var(--d-slow) var(--e-spring),
-              opacity var(--d-base) var(--e-standard),
-              transform var(--d-slow) var(--e-spring);
+  transform: translate3d(0, 10px, 0) scale(.98);
+  pointer-events: none;
+  transition: opacity var(--d-base) var(--e-standard), transform var(--d-slow) var(--e-spring);
 }
 .dock.has-context .dock__context {
-  max-height: 76px;
   opacity: 1;
   transform: none;
+  pointer-events: auto;
 }
 
 .dock__cta {

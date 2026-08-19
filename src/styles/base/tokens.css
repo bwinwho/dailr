@@ -213,8 +213,11 @@
   --avatar-lg: 84px;
   --avatar-xl: 128px;
 
-  --key-size:  clamp(58px, 19vw, 76px);
-  --key-gap:   clamp(6px, 2.2vw, 14px);
+  /* Sized to leave room for the persistent call button under the keypad
+     (DialCallButton.js) without pushing the deck taller than the viewport
+     on a typical device. */
+  --key-size:  clamp(50px, 15.5vw, 64px);
+  --key-gap:   clamp(6px, 2vw, 12px);
 
   --screen-pad-x: var(--sp-6);
   --screen-max-w: 520px;
