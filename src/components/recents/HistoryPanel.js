@@ -64,7 +64,12 @@ export function HistoryPanel({ detail, settings, onCall, onAction }) {
   let props = { detail, settings };
 
   const eyebrow = h('div.hpanel__eyebrow.t-eyebrow', { text: 'History' });
-  const name = h('h2.hpanel__name.t-display-l');
+  // Tapping the name opens the contact — the dedicated "open contact" icon
+  // is gone from the action row below (the user's own correction: that
+  // fourth slot is Remind, not profile), so this is the one path back to it.
+  const name = h('h2.hpanel__name.t-display-l', {
+    on: { click: () => { haptics.fire('tap'); onAction?.('profile'); } },
+  });
   const when = h('span.hpanel__when.t-body-sm.c-3');
   const numberBtn = h('button.hpanel__number.tap.t-label', {
     type: 'button', aria: { label: 'Copy number' },
@@ -72,12 +77,12 @@ export function HistoryPanel({ detail, settings, onCall, onAction }) {
   });
 
   // The contact card: no avatar (Project Clean Slate), four icon actions —
-  // call/text/whatsapp/open-contact — monochrome, aria-label only.
+  // call/text/whatsapp/remind — monochrome, aria-label only.
   const CARD_ACTIONS = [
     { id: 'call',     ic: 'phone',    label: 'Call' },
     { id: 'text',     ic: 'message',  label: 'Send a text' },
     { id: 'whatsapp', ic: 'whatsapp', label: 'WhatsApp' },
-    { id: 'profile',  ic: 'person',   label: 'Open contact' },
+    { id: 'remind',   ic: 'bell',     label: 'Remind me' },
   ];
   const actionRow = h('div.hpanel__actions');
   for (const a of CARD_ACTIONS) {

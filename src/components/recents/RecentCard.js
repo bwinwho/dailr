@@ -5,30 +5,26 @@
  * place into an action layer rather than navigating away.
  *
  * ---------------------------------------------------------------------------
- * REBUILT TWICE. First pass — see docs/UI_REVISION_PLAN.md § D1 — took it
- * from five rows down to two:
+ * REBUILT THREE TIMES. First pass — see docs/UI_REVISION_PLAN.md § D1 — took
+ * it from five rows down to two. Project Clean Slate removed the avatar and
+ * swipe-to-reveal, replacing both with two always-visible icon buttons. This
+ * pass, against the user's own reference mockups, does three more things:
  *
- *      ◉  AVNI                              10m   ☏
- *         She called you · 6m
- *         │ Red skirt — Amazon
+ *   - Splits the meta line into two: the event as a sentence, then duration
+ *     on its own row with a clock glyph — collapsed shows "6m", expanded
+ *     shows the full "6 minutes" once there's room for it.
+ *   - The second head button is state-aware: a filter/tune glyph that
+ *     expands the card when collapsed, a message glyph that sends a text
+ *     once expanded (its old job — opening the card — is already done).
+ *   - The expansion is two spaced link rows (History, Remind me — each with
+ *     a subtitle and a chevron, same language as ContactSheet's links) in
+ *     place of the old four-item text list plus a redundant icon row.
+ *     "Open contact" is gone from the list — tapping the name does that now.
  *
- * Project Clean Slate removes the avatar entirely (directive: no image
- * avatars in Recents — match the reference deck) and the swipe-to-reveal
- * gesture, replacing both the avatar's DIALR ring/spam badge and the swipe
- * with two always-visible icon buttons:
- *
- *      AVNI                                  10m   ☏  ⋯
- *      She called you · 6m
+ *      AVNI                                  10m   ☏  ▤
+ *      Avni called you.
+ *      🕐 6m
  *      │ Red skirt — Amazon
- *
- * DIALR-user status no longer marks the row at all — it's still visible on
- * the contact sheet and call screens, which is where a relationship, not a
- * list, actually needs it. Spam folds into the meta line's colour instead of
- * a chip, so exactly one dim line carries every non-name signal.
- *
- * The name is sized by measurement (core/dom.js › fitText), not by picking
- * between three hard buckets tuned for "AVNI" and going ragged on anyone
- * whose name doesn't happen to fit one of them.
  * ---------------------------------------------------------------------------
  */
 import { h, setText, toggle, afterTransition, fitText } from '../../core/dom.js';
@@ -52,10 +48,16 @@ const NUMBER_MIN = 14;
 export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction }) {
   let props = { row, expanded, settings };
 
-  /* ---- head: name + time, call + more, with meta/note below ------------- */
-  const first = h('h3.rcard__name');
+  /* ---- head: name + time, call + filter/text, with meta/duration/note
+     below. The name itself opens the contact — see its click handler. ---- */
+  const first = h('h3.rcard__name', {
+    on: { click: (e) => { e.stopPropagation(); haptics.fire('tap'); onAction?.('profile', props.row); } },
+  });
   const when = h('span.rcard__when.t-body-sm.c-3');
   const meta = h('p.rcard__meta.t-body-sm');
+  const durationIcon = h('span.rcard__duration-icon', { html: icon('clock') });
+  const durationText = h('span');
+  const durationLine = h('div.rcard__duration.t-body-sm.c-3', null, durationIcon, durationText);
   const noteLine = h('div.rcard__note.t-body-sm');
 
   const callBtn = h('button.rcard__act.rcard__act--primary', {
@@ -63,28 +65,38 @@ export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction
     on: { click: (e) => { e.stopPropagation(); haptics.fire('success'); onCall?.(props.row); } },
   }, h('span', { html: icon('phone') }));
 
-  const moreBtn = h('button.rcard__act', {
+  // Filter/tune glyph while collapsed (taps it or the card body both expand);
+  // once expanded, that job is done, so the same slot becomes "send a text".
+  const secondBtnIcon = h('span', { html: icon('filter') });
+  const secondBtn = h('button.rcard__act', {
     type: 'button', aria: { label: 'More actions' },
-    on: { click: (e) => { e.stopPropagation(); haptics.fire('tap'); onExpand?.(props.row); } },
-  }, h('span', { html: icon('more') }));
+    on: {
+      click: (e) => {
+        e.stopPropagation(); haptics.fire('tap');
+        if (props.expanded) onAction?.('text', props.row);
+        else onExpand?.(props.row);
+      },
+    },
+  }, secondBtnIcon);
 
-  const acts = h('div.rcard__acts', null, callBtn, moreBtn);
+  const acts = h('div.rcard__acts', null, callBtn, secondBtn);
 
   const head = h('div.rcard__head', null,
     first,
     when,
     acts,
     meta,
+    durationLine,
     noteLine);
 
   /* ---- expansion layer --------------------------------------------------
      Rendered once and revealed by height, so expanding does not re-create
-     nodes mid-animation. Actions are full 44px rows now, not text links. */
-  const actionList = h('div.rcard__actions');
-  const quickIcons = h('div.rcard__quick');
+     nodes mid-animation. Two spaced link rows, not a four-item text list
+     plus a redundant icon row. */
+  const linkList = h('div.rcard__links');
   const expansion = h('div.rcard__expansion', { aria: { hidden: 'true' } },
     h('div.rule.rcard__rule'),
-    h('div.rcard__expansion-inner', null, actionList, quickIcons));
+    linkList);
 
   const el = h('article.rcard', {
     dataset: { tier: row.tier },
@@ -104,46 +116,33 @@ export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction
   /* ---- render ----------------------------------------------------------- */
 
   function renderActions(row) {
-    actionList.textContent = '';
-    quickIcons.textContent = '';
-
+    linkList.textContent = '';
     const items = [
-      { id: 'text', ic: 'message', label: 'Send a text' },
-      { id: 'history', ic: 'clock', label: 'History' },
-      { id: 'remind', ic: 'bell', label: 'Remind me' },
+      { id: 'history', ic: 'clock', label: 'History', sub: 'View call history' },
+      { id: 'remind',  ic: 'bell',  label: 'Remind me', sub: 'Set a reminder' },
     ];
-    if (row.tier === 'unknown') items.push({ id: 'save', ic: 'plus', label: 'Save number' });
-    if (row.view) items.push({ id: 'profile', ic: 'person', label: 'Open contact' });
+    if (row.tier === 'unknown') items.push({ id: 'save', ic: 'plus', label: 'Save number', sub: 'Add to your contacts' });
 
     for (const it of items) {
-      actionList.appendChild(h('button.rcard__action', {
+      linkList.appendChild(h('button.rcard__link', {
         type: 'button',
         on: { click: (e) => { e.stopPropagation(); haptics.fire('tap'); onAction?.(it.id, row); } },
       },
-      h('span.rcard__action-icon', { html: icon(it.ic) }),
-      h('span.t-body', { text: it.label })));
-    }
-
-    const quick = [
-      { id: 'whatsapp', ic: 'whatsapp', label: 'WhatsApp' },
-      { id: 'history',  ic: 'clock',    label: 'History' },
-    ];
-    for (const q of quick) {
-      quickIcons.appendChild(h('button.rcard__quick-btn', {
-        type: 'button', aria: { label: q.label },
-        on: { click: (e) => { e.stopPropagation(); haptics.fire('tap'); onAction?.(q.id, row); } },
-      }, h('span', { html: icon(q.ic) })));
+      h('span.rcard__link-icon', { html: icon(it.ic) }),
+      h('span.col.grow', null,
+        h('span.rcard__link-label.t-body', { text: it.label }),
+        h('span.rcard__link-sub.t-caption.c-3', { text: it.sub })),
+      h('span.rcard__link-chev', { html: icon('chevronR') })));
     }
   }
 
   /**
-   * One dim line carries every non-name signal — the event as a sentence,
-   * duration, a callback nudge, and suspected spam (there is no chip for it
-   * anymore; a shield-worthy signal still reads fine in text, and one line
-   * is quieter than a line plus a chip). Coloured by what actually needs
-   * attention — everything else stays the same quiet secondary tone as the
-   * rest of the card, which is what makes the coloured ones legible at a
-   * glance.
+   * One dim line carries the event and any callback nudge — duration moved
+   * to its own line (see renderDuration) and suspected spam has no chip
+   * anymore; a shield-worthy signal still reads fine as text. Coloured by
+   * what actually needs attention — everything else stays the same quiet
+   * secondary tone as the rest of the card, which is what makes the
+   * coloured ones legible at a glance.
    */
   function renderMeta(row, settings) {
     const spammy = row.spam && row.spam.score >= 0.75 && !row.spam.trusted;
@@ -152,10 +151,6 @@ export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction
     parts.push(settings.recents.naturalLanguage
       ? callSentence(row.entry, row.view)
       : row.entry.disposition.replace(/-/g, ' '));
-
-    if (settings.recents.showDuration && row.entry.durationSec > 0) {
-      parts.push(spokenDuration(row.entry.durationSec, { short: true }));
-    }
     if (row.owed) parts.push(row.owed.count > 1 ? `${row.owed.count} to return` : 'Call back');
 
     setText(meta, parts.join(' · '));
@@ -163,6 +158,15 @@ export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction
     const missed = isMissed(row.entry);
     meta.classList.remove('c-2', 'c-warn', 'c-neg');
     meta.classList.add(spammy ? 'c-neg' : row.owed || missed ? 'c-warn' : 'c-2');
+  }
+
+  /** Collapsed reads "6m"; expanded spells it out ("6 minutes") now that
+   *  there's a whole extra line of room for it. */
+  function renderDuration(row, settings, expanded) {
+    const show = settings.recents.showDuration && row.entry.durationSec > 0;
+    toggle(durationLine, 'is-hidden', !show);
+    if (!show) return;
+    setText(durationText, spokenDuration(row.entry.durationSec, { short: !expanded }));
   }
 
   function update(next = {}) {
@@ -185,6 +189,7 @@ export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction
     setText(when, relativeTime(row.entry.startedAt, Date.now(), { compact: true }));
 
     renderMeta(row, settings);
+    renderDuration(row, settings, props.expanded);
 
     setText(noteLine, settings.recents.showNotes && row.note ? row.note : '');
     toggle(noteLine, 'is-hidden', !(settings.recents.showNotes && row.note));
@@ -194,11 +199,15 @@ export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction
     if (props.expanded !== el.classList.contains('is-expanded')) {
       if (props.expanded) {
         renderActions(row);
+        secondBtnIcon.innerHTML = icon('message');
+        secondBtn.setAttribute('aria-label', 'Send a text');
         el.classList.add('is-expanded');
         expansion.setAttribute('aria-hidden', 'false');
         expansion.style.height = `${expansion.scrollHeight}px`;
         afterTransition(expansion, 420).then(() => { if (el.classList.contains('is-expanded')) expansion.style.height = 'auto'; });
       } else {
+        secondBtnIcon.innerHTML = icon('filter');
+        secondBtn.setAttribute('aria-label', 'More actions');
         expansion.style.height = `${expansion.scrollHeight}px`;
         requestAnimationFrame(() => { expansion.style.height = '0px'; });
         el.classList.remove('is-expanded');

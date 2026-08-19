@@ -63,7 +63,7 @@ await page.click('.rcard');
 await page.waitForTimeout(560);
 await shot('08-recents-expanded');
 
-await page.click('.rcard__action:has-text("History")');
+await page.click('.rcard__link:has-text("History")');
 await page.waitForTimeout(700);
 await shot('09-history');
 

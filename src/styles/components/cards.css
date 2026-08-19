@@ -92,7 +92,18 @@
 }
 .rcard__note.is-hidden { display: none; }
 
-/* ---- action cluster: [ call ][ more ] — outlined circles, per the
+/* Duration gets its own row, same auto-flow rule as meta/note above — a
+   clock glyph + "6m" collapsed, spelled out ("6 minutes") once expanded.
+   See renderDuration() in RecentCard.js. */
+.rcard__duration {
+  grid-column: 1 / span 2;
+  display: flex; align-items: center; gap: var(--sp-3);
+}
+.rcard__duration-icon { display: grid; place-items: center; width: 14px; height: 14px; flex: 0 0 auto; }
+.rcard__duration-icon svg { width: 14px; height: 14px; }
+.rcard__duration.is-hidden { display: none; }
+
+/* ---- action cluster: [ call ][ filter/text ] — outlined circles, per the
    reference deck. Exactly one colour on this screen lives in the dialer, not
    here; see docs/UI_REVISION_PLAN's Clean Slate notes if that changes. ---- */
 .rcard__act {
@@ -112,30 +123,23 @@
   transition: height var(--d-slow) var(--e-spring);
 }
 .rcard__rule { margin: var(--sp-5) 0 var(--sp-5); }
-.rcard__expansion-inner { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-5); }
 
-/* Actions are real --touch-min rows now — the previous version was 15px text
-   links, well under the accessibility minimum. Measured with tools/audit.mjs. */
-.rcard__actions { display: flex; flex-direction: column; align-items: stretch; gap: var(--sp-2); flex: 1 1 auto; min-width: 0; }
-.rcard__action {
-  display: flex; align-items: center; gap: var(--sp-4);
-  min-height: var(--touch-min); padding: 0 var(--sp-2);
-  border-radius: var(--r-md);
-  color: var(--fg); text-align: left;
+/* Two spaced link rows (History, Remind me — plus Save number for an
+   unsaved caller) replace the old four-item text list and its redundant
+   icon row. Same visual language as ContactSheet's .csheet__link. */
+.rcard__links { display: flex; flex-direction: column; }
+.rcard__link {
+  display: flex; align-items: center; gap: var(--sp-5);
+  min-height: var(--touch-min); width: 100%; text-align: left;
+  border-bottom: 1px solid var(--line-hairline);
 }
-.rcard__action:active { background: var(--surface-2); color: var(--accent); }
-.rcard__action-icon { display: grid; place-items: center; width: 20px; height: 20px; flex: 0 0 auto; color: var(--fg-tertiary); }
-.rcard__action-icon svg { width: 18px; height: 18px; }
-
-.rcard__quick { display: flex; gap: var(--sp-4); flex: 0 0 auto; }
-.rcard__quick-btn {
-  display: grid; place-items: center;
-  width: var(--touch-min); height: var(--touch-min); border-radius: var(--r-circle);
-  color: var(--fg);
-  box-shadow: inset 0 0 0 1.6px var(--line-strong);
-}
-.rcard__quick-btn:active { background: var(--surface-2); }
-.rcard__quick-btn svg { width: 21px; height: 21px; }
+.rcard__link:last-child { border-bottom: 0; }
+.rcard__link-label { display: block; }
+.rcard__link-sub { display: block; margin-top: 1px; }
+.rcard__link-icon { display: grid; place-items: center; width: 20px; height: 20px; flex: 0 0 auto; color: var(--fg-tertiary); }
+.rcard__link-icon svg { width: 18px; height: 18px; }
+.rcard__link-chev { display: grid; place-items: center; width: 16px; height: 16px; flex: 0 0 auto; color: var(--fg-quaternary); }
+.rcard__link-chev svg { width: 16px; height: 16px; }
 
 /* ------------------------------------------------------------ history --- */
 /* Flat header: eyebrow "History" + name/number, left-aligned. No avatar, no
@@ -144,7 +148,7 @@
 .hpanel { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .hpanel__head { display: flex; flex-direction: column; }
 .hpanel__nameline { display: flex; align-items: baseline; gap: var(--sp-4); margin-top: var(--sp-2); }
-.hpanel__name { letter-spacing: var(--tr-tightest); }
+.hpanel__name { letter-spacing: var(--tr-tightest); cursor: pointer; }
 
 /* The contact card: [call][text][whatsapp][open contact] — 48px, monochrome. */
 .hpanel__actions {

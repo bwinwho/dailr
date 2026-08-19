@@ -208,7 +208,7 @@ async function runAudit(vp) {
   await page.click('.rcard');
   await auditScreen('recents-expanded');
 
-  await page.click('.rcard__action:has-text("History")');
+  await page.click('.rcard__link:has-text("History")');
   await auditScreen('history');
   await page.keyboard.press('Escape');
   await page.waitForTimeout(400);
