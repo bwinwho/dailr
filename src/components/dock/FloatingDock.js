@@ -52,17 +52,18 @@ export function FloatingDock({ onIntent, onNavigate }) {
     navRow.textContent = '';
     navItems.clear();
     for (const item of items) {
+      // Icon only. item.label survives as the accessible name — see
+      // src/state/dockController.js › NAV_ITEMS.
       const glyph = h('span.dock__nav-icon', { html: icon(item.icon) });
-      const label = h('span.dock__nav-label.t-micro', { text: item.label });
-      const badge = h('span.dock__nav-badge.t-micro');
+      const badge = h('span.dock__nav-badge.t-micro', { aria: { hidden: 'true' } });
       const btn = h('button.dock__nav-item', {
         type: 'button',
         dataset: { id: item.id },
         aria: { label: item.label, current: item.active ? 'page' : undefined },
         on: { click: () => { haptics.fire('select'); onNavigate?.(item.id); } },
-      }, glyph, label, badge);
+      }, glyph, badge);
       navRow.appendChild(btn);
-      navItems.set(item.id, { btn, badge, label });
+      navItems.set(item.id, { btn, badge });
     }
   }
 
@@ -73,8 +74,7 @@ export function FloatingDock({ onIntent, onNavigate }) {
         type: 'button', aria: { label: a.label },
         on: { click: () => { haptics.fire('tap'); onIntent?.(a.intent); } },
       },
-      h('span.dock__aux-icon', { html: icon(a.icon) }),
-      h('span.dock__aux-label.t-micro', { text: a.label })));
+      h('span.dock__aux-icon', { html: icon(a.icon) })));
     }
   }
 

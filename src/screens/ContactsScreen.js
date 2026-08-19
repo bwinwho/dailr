@@ -46,7 +46,7 @@ export function ContactsScreen({ store, actions }) {
     tomRow.appendChild(h('div.t-micro.c-4', { text: 'Top of mind' }));
     const strip = h('div.contacts__tom-strip');
     for (const p of people) {
-      const av = Avatar({ size: 'md', name: p.displayName, src: p.avatar, ring: p.isDialrUser });
+      const av = Avatar({ size: 'md', name: p.displayName, src: p.avatar, ring: p.isDialrUser, variant: 'mono' });
       strip.appendChild(h('button.contacts__tom-item', {
         type: 'button', aria: { label: `Call ${p.displayName}` },
         on: { click: () => { haptics.fire('success'); actions.call(p.primaryNumber, p.key); } },
@@ -151,24 +151,38 @@ export function ContactsScreen({ store, actions }) {
 }
 
 function contactRow(view, actions) {
-  const av = Avatar({ size: 'sm', name: view.displayName, src: view.avatar, ring: view.isDialrUser });
+  const av = Avatar({ size: 'sm', name: view.displayName, src: view.avatar, ring: view.isDialrUser, variant: 'mono' });
   const sub = [view.label, view.org, formatNumber(view.primaryNumber)].filter(Boolean)[0] || '';
 
-  const el = h('button.crow', {
+  const callBtn = h('button.crow__call', {
     type: 'button',
-    on: { click: () => actions.openContact(view.key) },
+    html: icon('phone'),
+    aria: { label: `Call ${view.displayName}` },
+    on: { click: (e) => { e.stopPropagation(); haptics.fire('success'); actions.call(view.primaryNumber, view.key); } },
+  });
+
+  // A <button> containing a real <button> is invalid markup — the previous
+  // call action was a <span role="button"> inside .crow, which is why a tap
+  // on it could double-fire the row's own click. .crow is a row (role
+  // "button" for keyboard/AT users), not a <button> element, so it can hold
+  // a genuine nested <button> for the call action.
+  const el = h('div.crow', {
+    role: 'button', tabindex: '0',
+    on: {
+      click: (e) => { if (!e.target.closest('button')) actions.openContact(view.key); },
+      keydown: (e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('button')) {
+          e.preventDefault(); actions.openContact(view.key);
+        }
+      },
+    },
   },
   av.el,
   h('span.col.grow', null,
     h('span.crow__name.t-body', { text: view.displayName }),
     h('span.crow__sub.t-caption', { text: sub })),
   view.favourite ? h('span.crow__star', { html: icon('starFill') }) : null,
-  h('span.crow__call', {
-    html: icon('phone'),
-    role: 'button',
-    aria: { label: `Call ${view.displayName}` },
-    on: { click: (e) => { e.stopPropagation(); haptics.fire('success'); actions.call(view.primaryNumber, view.key); } },
-  }));
+  callBtn);
 
   return {
     el,

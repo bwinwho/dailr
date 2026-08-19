@@ -44,11 +44,19 @@ Props: a `DockModel`. Emits: `onIntent(intent)`, `onNavigate(tabId)`.
 ┌─────────────────────────────┐  context row — grows upward, max-height animated
 │  ☏  CALL AVNI          [◷]  │  one primary CTA + up to two aux icons
 ├─────────────────────────────┤
-│  ▣    ◷    ◔    ◕          │  navigation — always present, never replaced
+│  ▣    ◷    ◔    ◕          │  navigation — icons only, no text labels
 └─────────────────────────────┘
 ```
 
-**Owns:** the morph animation, badge rendering, active-tab pill.
+**Icon-only nav** (Project Clean Slate): `.dock__nav-label` is gone from the
+DOM entirely — `item.label` from `dockController.js › NAV_ITEMS` now feeds
+`aria-label` only, so the accessible name is unchanged even though nothing
+renders. The active tab is a tinted rounded square (`--accent-soft`), not a
+full-bleed inverted pill. The CTA keeps its visible label — "CALL AVNI" is a
+sentence, not a nav label — and so do the two aux icons' `aria-label`s, but
+`.dock__aux-label` is gone the same way.
+
+**Owns:** the morph animation, badge rendering, active-tab tint.
 **Never:** decides *what* to show. That is `state/dockController.js`.
 
 Layout rationale is in the file header: swapping the dock's contents for a CTA
@@ -66,8 +74,9 @@ panel grows upward out of it. Lives in the bottom slot on Recents and Contacts.
 
 | Component | Notes |
 |---|---|
-| `NumberDisplay` | **One tap copies** — no long press. Type scales down rather than truncating. Backspace: tap deletes one, hold clears. Shows the matched contact beneath. |
-| `DialPad` | 12 keys, letters for T9 discoverability, DTMF tones, haptics, hold-0-for-`+`, hold-digit for speed dial. `bindKeyboard()` gives desktop and switch-access parity. |
+| `NumberDisplay` | **One tap copies** — no long press. Type scales down rather than truncating. Shows the matched contact beneath. Backspace lives in `DialerScreen`'s action row now (Project Clean Slate), not here — `onBackspace`/`onClear` were removed from its props when the button moved out. |
+| `DialPad` | 12 keys, T9 letters exist for search but are visually hidden (`.dialpad__letters { display:none }` — icon-only, minimal), DTMF tones, haptics, hold-0-for-`+`, hold-digit for speed dial. `bindKeyboard()` gives desktop and switch-access parity. |
+| `DialCallButton` | Persistent green circular call button, part of a 3-button action row `[add contact][call][backspace]` under the keypad — never removed from the layout, only label/tone/disabled state change (see its own header comment for why: a control that appears/disappears based on typed input can't share a bottom-anchored column with the keypad without shifting it). |
 
 ---
 
@@ -75,39 +84,56 @@ panel grows upward out of it. Lives in the bottom slot on Recents and Contacts.
 
 ### `RecentCard`
 
-The signature object. Reading order is inverted from a normal call log:
+The signature object. Rebuilt twice (§D1 in `docs/UI_REVISION_PLAN.md`, then
+Project Clean Slate). No avatar — Recents never shows a photo or a monogram —
+and no swipe gesture; two always-visible icon buttons (call, more) replace
+both the avatar's DIALR ring/spam badge and the swipe-to-reveal actions:
 
 ```
-CHHETRI                    ← surname, small, above
-AVNI      10 minutes ago   ← given name, large; time as a sibling
-She called you.            ← the event, as a sentence
-[ 6M ]                     ← at most three chips
-│ Red skirt — Amazon       ← the note gets its own line, never a chip
+AVNI                                  10m   ☏  ⋯
+She called you · 6m
+│ Red skirt — Amazon
 ```
 
-**Owns:** in-place expansion (height-animated, children built once), swipe
-right-to-call / left-to-message, name size stepping, the three-chip cap.
+**Owns:** in-place expansion (height-animated, children built once), the two
+head buttons, `fitText`-measured name sizing.
 
 **Never:** navigates. Expansion happens inside the card.
 
-The chip cap is a design rule with teeth: priority is safety → obligation →
-outcome → metadata, and the fourth chip is dropped. A card carrying five chips
-is a card nobody reads.
+**No chip anymore.** The one chip that survived the first rebuild — suspected
+spam — is gone too: it now prepends "Likely spam" to the meta line (coloured
+`--negative`) instead of getting its own box. Exactly one dim meta line
+carries every non-name signal (event sentence, duration, callback nudge,
+spam), coloured by whichever is most urgent. DIALR-user status no longer
+marks the row at all — it only appears on the contact sheet and call
+screens now that the avatar (which used to carry the ring) is gone.
 
 ### `HistoryPanel`
 
-Near-full-height sheet, stopping at the dock. Entries render as prose:
+`.sheet--full`, stopping above the WHOLE bottom zone (dock plus whatever's in
+the bottom slot for the underlying tab), not just the dock — so a filter bar
+or search bar stays visible and usable beneath it. Mounted with a null sheet
+title (`overlays.js`): `HistoryPanel` owns its entire header itself (eyebrow
+"HISTORY" + name + number, no avatar), so there's one identity header, not
+the sheet's title stacked above a second, near-duplicate one. The old fake
+"Send a text / History" tab pair is gone — text folds into a 4-icon contact
+card (`[call][text][whatsapp][open contact]`, no avatar) below the header.
+Entries render as prose with a status glyph, not a text tag:
 
 ```
-NIGHT 11 PM
-6 minutes · She called you.          ┌──────────────────┐
-                                     │ Red skirt—Amazon │
-                                     └──────────────────┘
+◉  NIGHT 11 PM
+   6 minutes · She called you.        ┃ Red skirt — Amazon
 ```
 
-Day headings are rows in the same keyed list, so grouping does not break
-reconciliation. Bottom: **Check Rewind**, hidden when there is not enough
-history to make it worth opening.
+The status glyph (green `phoneDown` / red `phoneMissed` circle) replaces the
+old "Missed"/"No answer" text tag — the meta line already says that in prose
+(`callSentence`), so the tag was pure duplication. The note is an inline pill
+under the entry, not a bubble floating beside it, coloured via `--fg`/`--bg`
+(a real light-mode bug in the old hardcoded `--n-100`/`--n-0` — it rendered
+white-on-black regardless of mode). Day headings are rows in the same keyed
+list, so grouping does not break reconciliation, and get real air
+(`--group-gap`, 64px) between them. Bottom: **Check Rewind**, hidden when
+there is not enough history to make it worth opening.
 
 ### `CheckRewind`
 
@@ -136,6 +162,12 @@ ONLY YOU SEE     label, pronouns, note, place, ringtone, background, SIM
 
 Showing the boundary is the honest version of the privacy model. A user who can
 see which half is private will actually use the private half.
+
+No avatar (Project Clean Slate) — the name is the head. Three actions, not
+five: Call/Text/WhatsApp, icon only. History and Remind moved out of the
+action grid into a separate spaced list with chevrons (`.csheet__links`) —
+they navigate elsewhere, they don't act on this number, so they don't belong
+as peers of Call/Text/WhatsApp.
 
 ### `ContactEditor`
 

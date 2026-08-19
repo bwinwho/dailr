@@ -6,34 +6,36 @@
  * finds people by name — so stacking a second search field above it would be
  * redundant chrome in the most valuable real estate on the screen.
  *
- * Everything above the keypad grows upward as you type: suggestions first,
- * then the number readout, then the keypad, then the dock. One-handed the
- * whole way down.
+ * Top of Mind and an empty-state recents list used to render above the
+ * keypad; both are gone (Project Clean Slate — they duplicated the Recents
+ * tab and were noise the user asked to remove twice). The keypad is not
+ * literally centred in the viewport: that would make the deck stop being
+ * bottom-anchored, which is exactly what caused the 122px layout-shift bug
+ * Phase 1 fixed. Instead the deck stays pinned to the bottom slot, and with
+ * nothing left above it .dialer__scroll is simply empty — so the keypad
+ * already sits in a vertically centred lower field, with real emptiness
+ * above it and zero jitter. Horizontal centring of the keypad and action row
+ * is real (CSS margin-inline: auto).
  */
-import { h, setText, toggle, reconcile } from '../core/dom.js';
+import { h, toggle, reconcile, on } from '../core/dom.js';
 import { icon } from '../core/icons.js';
 import { NumberDisplay } from '../components/dialer/NumberDisplay.js';
 import { DialPad } from '../components/dialer/DialPad.js';
 import { DialCallButton, dialCallModel } from '../components/dialer/DialCallButton.js';
 import { Avatar } from '../components/primitives/Avatar.js';
-import { EmptyState } from '../components/primitives/States.js';
-import { formatNumber, relativeTime, callSentence } from '../core/format.js';
-import { selDialerMatch, selTopOfMind, selRecents } from '../state/selectors.js';
+import { formatNumber } from '../core/format.js';
+import { selDialerMatch } from '../state/selectors.js';
 import haptics from '../core/haptics.js';
 
 export function DialerScreen({ store, actions }) {
   const suggestions = h('div.dialer__suggestions');
   const suggestionStore = new Map();
-  const topOfMind = h('div.dialer__topofmind');
-  const emptySlot = h('div.dialer__empty');
 
   const scroll = h('div.screen__body.screen__body--nosearch.dialer__scroll', null,
-    h('div.screen__inner', null, emptySlot, topOfMind, suggestions));
+    h('div.screen__inner', null, suggestions));
 
   const numberDisplay = NumberDisplay({
     onCopy: () => actions.toast({ text: 'Number copied', iconName: 'copy' }),
-    onBackspace: () => actions.dialerBackspace(),
-    onClear: () => actions.dialerClear(),
     onMatchTap: () => {
       const m = selDialerMatch(store.getState());
       if (m.primary?.view) actions.openContact(m.primary.view.key);
@@ -50,31 +52,37 @@ export function DialerScreen({ store, actions }) {
     onLongPress: ({ number, contactKey }) => actions.openSimPicker(number, contactKey),
   });
 
-  /** The bottom slot for this tab: readout + keypad + call, in the thumb zone.
-   *  This whole block is mounted once and never leaves the layout — see
-   *  DialCallButton.js for why that is the point. */
-  const bottom = h('div.dialer__deck', null, numberDisplay.el, pad.el, callButton.el);
+  /** [ add contact ] [ CALL ] [ backspace ] — icons only, one green.
+   *  All three are mounted permanently; inapplicable ones fade and go
+   *  disabled. Nothing here may unmount — see DialCallButton.js. */
+  const addBtn = h('button.dial-action', {
+    type: 'button', aria: { label: 'Save this number as a contact' },
+    on: { click: () => actions.addContact(store.getState().dialer.input) },
+  }, h('span', { html: icon('plus') }));
+
+  const backBtn = h('button.dial-action.dialer__back', {
+    type: 'button', aria: { label: 'Delete last digit' },
+    on: { click: () => actions.dialerBackspace() },
+  }, h('span', { html: icon('back') }));
+
+  // Hold to clear — the gesture NumberDisplay used to own.
+  let holdTimer = null;
+  const cancelHold = () => { clearTimeout(holdTimer); holdTimer = null; };
+  const offHoldDown = on(backBtn, 'pointerdown', () => {
+    holdTimer = setTimeout(() => { haptics.fire('warn'); actions.dialerClear(); holdTimer = null; }, 480);
+  });
+  const offHoldUp = on(backBtn, 'pointerup', cancelHold);
+  const offHoldLeave = on(backBtn, 'pointerleave', cancelHold);
+
+  const actionRow = h('div.dialer__actions', null, addBtn, callButton.el, backBtn);
+
+  /** The bottom slot for this tab: readout + keypad + actions, in the thumb
+   *  zone. This whole block is mounted once and never leaves the layout —
+   *  see DialCallButton.js for why that is the point. */
+  const bottom = h('div.dialer__deck', null, numberDisplay.el, pad.el, actionRow);
 
   const el = h('section.screen.screen--dialer', { id: 'screen-dialer', role: 'tabpanel', aria: { label: 'Keypad' } },
     scroll);
-
-  function renderTopOfMind(state) {
-    const people = selTopOfMind(state);
-    topOfMind.textContent = '';
-    if (!people.length || state.dialer.input) { toggle(topOfMind, 'is-hidden', true); return; }
-    toggle(topOfMind, 'is-hidden', false);
-
-    topOfMind.appendChild(h('div.dialer__tom-label.t-micro.c-4', { text: 'Top of mind' }));
-    const row = h('div.dialer__tom-row');
-    for (const p of people) {
-      const av = Avatar({ size: 'md', name: p.displayName, src: p.avatar, ring: p.isDialrUser });
-      row.appendChild(h('button.dialer__tom-item', {
-        type: 'button', aria: { label: `Call ${p.displayName}` },
-        on: { click: () => { haptics.fire('success'); actions.call(p.primaryNumber, p.key); } },
-      }, av.el, h('span.dialer__tom-name.t-micro', { text: p.firstName })));
-    }
-    topOfMind.appendChild(row);
-  }
 
   function renderSuggestions(state) {
     const match = selDialerMatch(state);
@@ -98,37 +106,6 @@ export function DialerScreen({ store, actions }) {
     toggle(suggestions, 'is-hidden', !rows.length);
   }
 
-  function renderEmpty(state) {
-    emptySlot.textContent = '';
-    if (state.dialer.input) { toggle(emptySlot, 'is-hidden', true); return; }
-
-    const recents = selRecents(state).slice(0, 3);
-    if (!recents.length) {
-      toggle(emptySlot, 'is-hidden', false);
-      emptySlot.appendChild(EmptyState({
-        iconName: 'keypad',
-        title: 'Start typing',
-        body: 'Numbers or names — the keypad letters search your contacts too.',
-      }).el);
-      return;
-    }
-
-    toggle(emptySlot, 'is-hidden', false);
-    emptySlot.appendChild(h('div.dialer__recent-label.t-micro.c-4', { text: 'Just now' }));
-    const list = h('div.dialer__recent-list');
-    for (const r of recents) {
-      list.appendChild(h('button.dialer__recent', {
-        type: 'button',
-        on: { click: () => actions.call(r.entry.number, r.key) },
-      },
-      h('span.col.grow', null,
-        h('span.dialer__recent-name.t-body', { text: r.displayName }),
-        h('span.t-caption', { text: `${relativeTime(r.entry.startedAt, Date.now(), { compact: true })} · ${callSentence(r.entry, r.view)}` })),
-      h('span.dialer__recent-icon', { html: icon('phone') })));
-    }
-    emptySlot.appendChild(list);
-  }
-
   function update(state) {
     const match = selDialerMatch(state);
     const primary = match.matches[0];
@@ -149,15 +126,22 @@ export function DialerScreen({ store, actions }) {
 
     callButton.update(dialCallModel(match));
 
-    renderEmpty(state);
-    renderTopOfMind(state);
+    const empty = !state.dialer.input;
+    addBtn.disabled = empty || match.state === 'contact';
+    backBtn.disabled = empty;
+    toggle(addBtn, 'is-off', addBtn.disabled);
+    toggle(backBtn, 'is-off', backBtn.disabled);
+
     renderSuggestions(state);
     toggle(el, 'is-typing', !!state.dialer.input);
   }
 
   return {
     el, bottom, update,
-    destroy() { numberDisplay.destroy(); pad.destroy(); callButton.destroy(); },
+    destroy() {
+      numberDisplay.destroy(); pad.destroy(); callButton.destroy();
+      offHoldDown(); offHoldUp(); offHoldLeave();
+    },
   };
 }
 
@@ -171,6 +155,7 @@ function createSuggestion(r, actions) {
     name,
     src: r.kind === 'contact' ? r.contact.avatar : r.kind === 'dialr' ? r.profile.avatarUrl : null,
     ring: r.kind === 'dialr',
+    variant: 'mono',
   });
 
   const meta = r.kind === 'contact' ? formatNumber(r.number.value)

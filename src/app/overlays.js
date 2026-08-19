@@ -36,7 +36,12 @@ export function createOverlayHost({ mount, store, actions }) {
           onCall: () => actions.call(detail.view?.primaryNumber || props.number, props.contactKey),
           onAction: (id) => actions.historyAction(id, props.contactKey, props.number),
         });
-        return sheetWrap('History', inner, 'full', entry);
+        // null title: HistoryPanel owns its own header (eyebrow "History" +
+        // name + number) — a wrapper title here used to render as a second,
+        // redundant header above it. See ContactSheet/Settings for the same
+        // null-title pattern; the wrapper's .sheet__close is still the one
+        // close affordance.
+        return sheetWrap(null, inner, 'full', entry);
       }
 
       case 'rewind': {

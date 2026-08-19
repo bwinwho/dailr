@@ -64,6 +64,7 @@
   --sp-11: 48px;
   --sp-12: 64px;
   --sp-13: 80px;
+  --sp-14: 96px;
 
   /* --- radius -------------------------------------------------------------- */
   --r-xs:  6px;
@@ -186,15 +187,21 @@
   /* ==========================================================================
      L4 — COMPONENT GEOMETRY
      ====================================================================== */
-  --dock-h:          64px;
-  --dock-inset-x:    14px;
-  --dock-inset-b:    14px;
+  /* --- dock: icons only. 60 - (2 × 6) = 48px items, exactly --touch-min. --- */
+  --dock-h:          60px;
+  --dock-inset-x:    16px;
+  --dock-inset-b:    16px;
   --dock-radius:     var(--r-2xl);
-  --dock-gap:        8px;
+  --dock-gap:        10px;
   --dock-pad:        6px;
+  --dock-icon:       24px;
 
   --search-h:        52px;
-  --search-gap:      10px;   /* distance from search to dock                   */
+  --search-gap:      12px;   /* distance from search to dock                   */
+  /* The recents filter bar deliberately matches --search-h so --bottom-actual
+     is identical on Recents and Contacts and content doesn't jump on tab
+     switch. */
+  --filterbar-h:     var(--search-h);
 
   /* Everything anchored above the dock uses this. One number to retune the
      entire one-handed zone. */
@@ -205,22 +212,50 @@
 
   --card-radius:     var(--r-lg);
   --card-pad:        var(--sp-6);
-  --card-gap:        var(--sp-4);
+  --card-gap:        var(--sp-5);
 
-  --avatar-xs: 28px;
-  --avatar-sm: 38px;
-  --avatar-md: 54px;
+  /* sm/md shrink because a monogram needs less visual weight than a photograph
+     did; xs was never referenced by any call site. */
+  --avatar-sm: 40px;
+  --avatar-md: 52px;
   --avatar-lg: 84px;
   --avatar-xl: 128px;
 
-  /* Sized to leave room for the persistent call button under the keypad
-     (DialCallButton.js) without pushing the deck taller than the viewport
-     on a typical device. */
-  --key-size:  clamp(50px, 15.5vw, 64px);
-  --key-gap:   clamp(6px, 2vw, 12px);
+  /* --- keypad ---------------------------------------------------------------
+     Bounded by HEIGHT as well as width. A width-only clamp overflows a short
+     360×640 device: four rows of keys plus gaps plus the readout and action
+     row must all fit above the dock. -------------------------------------- */
+  --key-size:  clamp(54px, min(19vw, 8.6vh), 76px);
+  --key-gap:   clamp(10px, 3.2vw, 16px);
+  --key-digit: clamp(25px, 7.2vw, 31px);
 
-  --screen-pad-x: var(--sp-6);
+  /* --- dialer action row: [add] [CALL] [backspace] ------------------------- */
+  --dial-action: 56px;
+  --dial-call:   72px;
+
+  /* --- list rhythm ----------------------------------------------------------
+     One vertical rhythm shared by every list in the app; see .stack in
+     layout.css. --group-gap separates day groups (History). ---------------- */
+  --row-gap:   var(--sp-5);
+  --group-gap: var(--sp-12);
+
+  --screen-pad-x: var(--sp-7);
   --screen-max-w: 520px;
+}
+
+/* ============================================================================
+   TOUCH TARGET FLOOR
+   --touch-min exists above but reset.css strips all button padding, so an
+   element with no explicit size collapses to its line box (~15px). A blanket
+   `button { min-height: 48px }` is wrong here — it would make the 26-button
+   A–Z index rail 1248px tall. Apply .tap explicitly to elements whose own
+   rule sets no size instead.
+   ========================================================================== */
+.tap {
+  min-height: var(--touch-min);
+  min-width: var(--touch-min);
+  display: inline-flex;
+  align-items: center;
 }
 
 /* ============================================================================

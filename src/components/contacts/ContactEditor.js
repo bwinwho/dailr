@@ -49,7 +49,7 @@ export function ContactEditor({ draft, existing, onSave, onCancel, onDelete }) {
           : null);
       numberList.appendChild(row);
     });
-    numberList.appendChild(h('button.ceditor__add.t-label', {
+    numberList.appendChild(h('button.ceditor__add.tap.t-label', {
       type: 'button',
       on: { click: () => { state.numbers.push({ value: '', label: 'Home', primary: false }); renderNumbers(); } },
     }, h('span', { html: icon('plus') }), h('span', { text: 'Add another number' })));

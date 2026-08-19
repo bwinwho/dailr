@@ -30,7 +30,7 @@ export function ProfileView({ profile, settings, mode = 'self', onAction }) {
     h('div.profile__squad-label.t-label', { text: 'Squad\nmembers' }),
     squadValue);
 
-  const numberRow = h('button.profile__number', {
+  const numberRow = h('button.profile__number.tap', {
     type: 'button', on: { click: () => onAction?.('copy-number') },
   }, h('span.profile__flag', { text: '🇮🇳' }), h('span.t-title.t-num'));
 
@@ -140,7 +140,7 @@ export function ProfileView({ profile, settings, mode = 'self', onAction }) {
       : [{ id: 'block', label: 'Block & report', tone: 'danger' },
          { id: 'squad', label: 'Ask to add', tone: 'positive' }];
     for (const it of items) {
-      topActions.appendChild(h(`button.profile__topaction.t-label.is-${it.tone || 'plain'}`, {
+      topActions.appendChild(h(`button.profile__topaction.tap.t-label.is-${it.tone || 'plain'}`, {
         type: 'button', text: it.label,
         on: { click: () => onAction?.(it.id) },
       }));

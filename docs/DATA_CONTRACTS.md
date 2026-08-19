@@ -481,7 +481,7 @@ recents     naturalLanguage grouping showDuration showSim showNotes
 smart       smartDock t9 speedDial callbackDebt bestTime fadingContacts
             fadingWeeks firstTimeCaller repeatToday lastNoteOnIncoming
             numberRegion silentHours silentFrom silentTo silentBreakthrough
-            topOfMind duplicateSuggestions swipeActions
+            topOfMind duplicateSuggestions
 protection  enabled level threshold useNetwork trustBusinesses repeatDetection
             repeatCount repeatWindow screenUnknown blockHidden
 replies     one two three channel reminderPresets tellThem tellThemChannel

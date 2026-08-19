@@ -1,7 +1,9 @@
 # DIALR — Contacts View: Technical Summary
 
-Reflects repo state as of commit `2d14f2c` (Phase 2 complete; Phase 3, which
-removes Top of Mind, has not run). All paths relative to repo root.
+Reflects repo state after **Project Clean Slate** (see `docs/UI_REVISION_PLAN.md`
+for how that superseded the original Phase 3–5 plan this doc was first written
+against). Top of Mind is still present on Contacts — only the Dialer's copy was
+removed. All paths relative to repo root.
 
 ---
 
@@ -29,7 +31,7 @@ src/screens/ContactsScreen.js          ContactsScreen(store, actions)  — scree
 │   └─ button.contacts__add            + new-contact icon button
 │
 ├─ div.contacts__tom                   Top of Mind row  (inline fn: renderTopOfMind)
-│   └─ button.contacts__tom-item × N   ⤷ src/components/primitives/Avatar.js (size:'md')
+│   └─ button.contacts__tom-item × N   ⤷ src/components/primitives/Avatar.js (size:'md', variant:'mono')
 │
 ├─ div.contacts__dupes                 duplicate-merge suggestion (inline fn: renderDupes)
 │
@@ -40,8 +42,11 @@ src/screens/ContactsScreen.js          ContactsScreen(store, actions)  — scree
 │
 ├─ div.contacts__list                  the A–Z list (inline fn: contactRow)
 │   ├─ div.contacts__letter             sticky section header, one per letter
-│   └─ button.crow × N                  one row per contact
-│       └─ src/components/primitives/Avatar.js (size:'sm')
+│   └─ div.crow[role=button] × N        one row per contact — a row (role
+│       │                               "button"), not a <button>, so it can
+│       │                               hold a real nested <button> for call
+│       ├─ src/components/primitives/Avatar.js (size:'sm', variant:'mono')
+│       └─ button.crow__call            the call action, 48×48
 │
 └─ div.contacts__index                  right-edge A–Z jump rail (hidden <6 sections)
 
@@ -77,7 +82,7 @@ rewritten at runtime by `src/theme/themeEngine.js`) → component geometry (L4).
 | `--bg` | `#000000` | `#ffffff` | screen background |
 | `--surface-1` | `#1a1a1a` | `#f2f2f2` | skeleton rows |
 | `--surface-2` | `#232323` | `#e8e8e8` | duplicate-banner bg, crow:active |
-| `--surface-3` | `#2e2e2e` | `#dcdcdc` | contacts__add button bg, crow__call bg |
+| `--surface-3` | `#2e2e2e` | `#dcdcdc` | contacts__add button bg, crow__call bg, avatar--mono bg is `--surface-2` |
 | `--fg` | `#ffffff` | `#000000` | primary text, icons |
 | `--fg-secondary` | `rgba(255,255,255,.74)` | `rgba(0,0,0,.70)` | — |
 | `--fg-tertiary` | `rgba(255,255,255,.48)` | `rgba(0,0,0,.46)` | crow__sub, count label, index rail (default) |
@@ -112,9 +117,9 @@ proportions survive offline.
 |---|---|---|
 | `--r-circle` | `50%` | Avatar, `contacts__add`, `crow__call` |
 | `--r-md` | `16px` | `contacts__dupe` |
-| `--touch-min` | `48px` | design target (see §5 for actual measured sizes) |
-| `--avatar-sm` | `38px` | `crow` avatar |
-| `--avatar-md` | `54px` | Top-of-Mind avatar |
+| `--touch-min` | `48px` | enforced floor — `crow__call` is exactly 48×48; a `.tap` utility class (`tokens.css`) applies it to text-only interactive elements that would otherwise collapse to their line box |
+| `--avatar-sm` | `40px` | `crow` avatar (monogram only — `variant:'mono'`, no photo ever requested) |
+| `--avatar-md` | `52px` | Top-of-Mind avatar (also `variant:'mono'`) |
 
 ---
 
@@ -196,12 +201,20 @@ independent of the scroll container; clicking a letter calls
 
 **Bottom navigation / search layout**: not part of the screen file at all —
 composed once in `src/app/shell.js` / `src/app/main.js` and reused by every
-tab:
+tab, with `src/state/bottomController.js › selectBottomSlot(state)` deciding
+which component owns the slot (the mirror of `dockController.js` for the
+dock — one decision, one place, not a conditional inline in the render loop):
 ```
 .app__bottom  (position:absolute, bottom:0, flex column)
  └─ .app__bottom-inner (max-width:520px, centred)
-     ├─ #bottom-slot     ← SearchBar.js mounted here for Contacts/Recents tabs (Dialer gets a keypad+call button instead)
-     └─ #dock-slot       ← FloatingDock.js, always mounted, two-row: context (position:absolute, floats above nav) + nav row (fixed 64px height, --dock-h)
+     ├─ #bottom-slot     ← SearchBar.js on Contacts; the Recents filter bar
+     │                      (All/Missed) or SearchBar on Recents, depending
+     │                      on state.search.open; Dialer's deck (keypad +
+     │                      action row) on the Dialer tab; nothing on You
+     └─ #dock-slot       ← FloatingDock.js, always mounted, icon-only nav
+                            (no text labels — labels survive only as
+                            aria-label), two-row: context (position:absolute,
+                            floats above nav) + nav row (fixed --dock-h, 60px)
 ```
 The dock's contextual row is absolutely positioned above the nav row
 specifically so it can never push the tab content (fixed since Phase 1,
@@ -209,7 +222,13 @@ specifically so it can never push the tab content (fixed since Phase 1,
 if the search query looks like a phone number, "Add contact {number}"
 (`src/state/dockController.js › contactsContext`).
 
-Row height is `min-height: 62px` (`.crow`), not tied to `--touch-min` (48px)
-directly but comfortably exceeds it; `crow__call` icon button is 40×40px —
-below the 44px floor the rest of the app now enforces post-Phase-2 (flagged
-in `docs/UI_REVISION_PLAN.md § 3.6`, not yet fixed on this screen).
+Row height is `min-height: 62px` (`.crow`), comfortably exceeding
+`--touch-min` (48px); `crow__call` is a real sibling `<button>` at exactly
+48×48 — it used to be a `<span role="button">` nested inside a `<button
+class="crow">`, which is invalid markup (a `<button>` cannot contain
+interactive content) and could double-fire the row's own click. `.crow`
+is now a `<div role="button" tabindex="0">` — a row, not a native button —
+specifically so it can hold a genuine nested `<button>` for the call action;
+its own click handler ignores clicks that originate inside a `<button>`
+(`e.target.closest('button')`). `SearchOverlay.js`'s `.searchres__row` /
+`.searchres__call` pair uses the identical fix for the same reason.

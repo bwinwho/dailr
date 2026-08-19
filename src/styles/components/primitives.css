@@ -118,7 +118,6 @@
   background: var(--surface-3);
   width: var(--avatar-md); height: var(--avatar-md);
 }
-.avatar--xs { width: var(--avatar-xs); height: var(--avatar-xs); }
 .avatar--sm { width: var(--avatar-sm); height: var(--avatar-sm); }
 .avatar--md { width: var(--avatar-md); height: var(--avatar-md); }
 .avatar--lg { width: var(--avatar-lg); height: var(--avatar-lg); }
@@ -134,13 +133,11 @@
 .avatar.no-photo .avatar__img { display: none; }
 /* No photo reads differently on purpose — never a fake portrait. */
 .avatar.no-photo { background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--line); }
+/* 'mono' surfaces never show a photo — the monogram IS the identity mark, so
+   it gets a flatter treatment than a fallback would. */
+.avatar--mono { background: var(--surface-2); box-shadow: none; }
 
 .avatar--ring { box-shadow: 0 0 0 2px var(--accent), 0 0 0 4px var(--bg); }
-.avatar__badge { display: none; position: absolute; right: 0; bottom: 0; width: 30%; height: 30%;
-                 border-radius: var(--r-circle); box-shadow: 0 0 0 2px var(--bg); }
-.avatar[data-status="missed"] .avatar__badge { display: block; background: var(--warn); }
-.avatar[data-status="spam"]   .avatar__badge { display: block; background: var(--negative); }
-.avatar[data-status="live"]   .avatar__badge { display: block; background: var(--positive); }
 
 /* ----------------------------------------------------------------- chips  */
 .chiprow { display: flex; gap: var(--sp-2); align-items: center; }
@@ -174,7 +171,11 @@
                   font-weight: var(--w-medium); font-size: calc(var(--t-caption) * var(--fs));
                   box-shadow: inset 0 0 0 1px rgba(255,209,102,.28); }
 
-button.chip { transition: background var(--d-fast) var(--e-standard); }
+/* Interactive chips (Chip.js renders a <span> instead when there's no
+   onClick) still need the touch floor, even though the resting chip is a
+   small pill — the hit box grows with the chip rather than via padding
+   tricks, since these sit in a wrapping row where that reads cleanly. */
+button.chip { min-height: var(--touch-min); transition: background var(--d-fast) var(--e-standard); }
 button.chip[data-selected="true"] { background: var(--fg); color: var(--bg); }
 .chip.is-hidden, .chiprow.is-hidden { display: none; }
 
@@ -307,7 +308,15 @@ button.chip[data-selected="true"] { background: var(--fg); color: var(--bg); }
 .sheet--peek { height: auto; }
 .sheet--half { height: 52%; }
 .sheet--tall { height: 78%; }
-.sheet--full { height: calc(100% - var(--safe-t) - var(--bottom-zone-nosearch) - var(--sp-6)); }
+/* Unlike the other heights, --full stops above the WHOLE bottom zone (dock
+   plus whatever's in the bottom slot — filter bar, search bar), not just the
+   dock, so that content stays visible and usable underneath a full sheet
+   like History instead of being covered by it. */
+.sheet--full {
+  bottom: calc(var(--bottom-actual, var(--bottom-zone)) + var(--sp-3));
+  height: calc(100% - var(--safe-t) - var(--bottom-actual, var(--bottom-zone)) - var(--sp-5));
+  border-radius: var(--r-xl);
+}
 
 .sheet__grabber {
   width: 36px; height: 4px; border-radius: 2px;
@@ -324,7 +333,7 @@ button.chip[data-selected="true"] { background: var(--fg); color: var(--bg); }
 .sheet__title { letter-spacing: var(--tr-wider); }
 .sheet__close {
   display: grid; place-items: center;
-  width: 34px; height: 34px; border-radius: var(--r-circle);
+  width: var(--touch-min); height: var(--touch-min); border-radius: var(--r-circle);
   background: var(--surface-3); color: var(--fg-secondary);
 }
 .sheet__close svg { width: 18px; height: 18px; }
@@ -425,7 +434,7 @@ button.chip[data-selected="true"] { background: var(--fg); color: var(--bg); }
 .banner__icon svg { width: 18px; height: 18px; }
 .banner__text { flex: 1 1 auto; }
 .banner__action { color: var(--accent); flex: 0 0 auto; }
-.banner__close { display: grid; place-items: center; width: 24px; height: 24px; color: var(--fg-quaternary); }
+.banner__close { display: grid; place-items: center; width: var(--touch-min); height: var(--touch-min); margin: calc(var(--sp-4) * -1) calc(var(--sp-5) * -1) calc(var(--sp-4) * -1) 0; color: var(--fg-quaternary); flex: 0 0 auto; }
 .banner__close svg { width: 16px; height: 16px; }
 .banner--warn { background: rgba(255,176,32,.12); color: var(--warn); }
 

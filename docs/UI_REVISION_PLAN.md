@@ -1,6 +1,15 @@
 # DIALR — UI Revision Plan
 
-**Status:** approved plan, not yet implemented.
+**Status:** Phases 1–2 shipped as written below. Phases 3–5 (§4) were
+superseded before implementation by **Project Clean Slate** — a broader
+hyper-minimalist pass driven by a reference design deck, which folded in and
+completed everything these phases called for (icons-only dock, History as a
+proper screen with the dock/filter bar visible beneath it, and a full
+touch-target sweep) plus additional work the deck required (avatar removal
+from Recents/Contacts/History/ContactSheet, the Recents filter bar moving to
+the bottom slot, swipe-to-reveal removed in favour of two visible icon
+buttons). See `Ui.md` for the current architecture and this file's §0–§2 for
+the still-valid root-cause analysis behind D1–D3.
 **Audit tool:** `node tools/audit.mjs` — re-run after each phase to verify.
 
 ---

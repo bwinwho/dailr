@@ -317,10 +317,6 @@ export const FIELDS = [
   f({ id: 'smart.duplicateSuggestions', section: 'smart', group: 'Contacts', tier: 2,
       label: 'Suggest duplicate merges', default: true }),
 
-  f({ id: 'smart.swipeActions', section: 'smart', group: 'Gestures', tier: 1,
-      label: 'Swipe recent cards', default: true,
-      hint: 'Swipe right to call, left to message.' }),
-
   /* ========================== PROTECTION ================================ */
   f({ id: 'protection.enabled', section: 'protection', group: 'Spam', tier: 1,
       label: 'Call protection', default: true,

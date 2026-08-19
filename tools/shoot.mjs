@@ -50,8 +50,8 @@ for (const d of ['2', '8', '6', '4']) { await page.click(`.dialpad__key[data-key
 await shot('05-dialer-t9-match');
 
 // clear, then type a real prefix
-await page.click('.numdisp__back'); await page.click('.numdisp__back');
-await page.click('.numdisp__back'); await page.click('.numdisp__back');
+await page.click('.dialer__back'); await page.click('.dialer__back');
+await page.click('.dialer__back'); await page.click('.dialer__back');
 for (const d of ['9','8','4','2','0','0','4']) { await page.click(`.dialpad__key[data-key="${d}"]`); await page.waitForTimeout(60); }
 await shot('06-dialer-number-match');
 

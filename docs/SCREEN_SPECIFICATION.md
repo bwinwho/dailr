@@ -95,64 +95,87 @@ Physical keyboard bound for desktop and switch access.
 
 ## 3. Recents
 
+No avatars (Project Clean Slate — Recents never shows a photo or a monogram).
+The All/Missed filter bar lives in the bottom slot, not the header — it
+displaces the search bar there, the way the Dialer's keypad does; a header
+search icon reopens search when needed (`src/state/bottomController.js`).
+
 ```
-RECENTS
-[All 432] [Missed 48] [To return 5] [Filtered 6]
+RECENTS                                            ⌕
 
-┌──────────────────────────────────────┐
-│ CHHETRI                        ☏  ◉  │
-│ AVNI        10 minutes ago            │
-│ Avni called you.                      │
-│ [6M]                                  │
-│ │ Red skirt — Amazon                  │
-└──────────────────────────────────────┘
+AVNI                                    10m   ☏   ⋯
+Avni called you. · 6m
+│ Red skirt — Amazon
+──────────────────────────────────────────────────
++91 84710 02299                          1h   ☏   ⋯
+Likely spam · Screened.
+──────────────────────────────────────────────────
+                       ⋯
+[      ◉ All      ] [      Missed      ]   ← bottom slot
 ```
 
-Filter chips hide themselves when their count is zero — the app never offers a
-filter that would produce an empty list.
+`row.owed`/`row.spam` still drive the meta line's colour and copy ("Call back",
+"Likely spam") — only the **To return** and **Filtered** filter *segments*
+are gone; the underlying states are still reachable via `emptyFor()` and
+`selRecentCounts`, just not as tappable pills.
 
-**Card expansion** (tap): a rule appears, then **Send a text · History · Remind
-me · Open contact**, plus WhatsApp and History quick icons. In place. The dock
-becomes **CALL AVNI**.
+**Card expansion** (tap anywhere except the two head buttons): a rule appears,
+then **Send a text · History · Remind me · Open contact**, plus WhatsApp and
+History quick icons. In place. The dock becomes **CALL AVNI**. Swipe-to-reveal
+is gone — the two head buttons (call, more) replace it as the discoverable,
+always-visible equivalent.
 
 | State | Content |
 |---|---|
 | Loading | four card-shaped skeletons |
 | Empty (All) | *"No calls yet"* + "Open the keypad" |
 | Empty (Missed) | *"Nothing missed — you are all caught up"* |
-| Empty (To return) | *"No calls to return"* |
-| Empty (Filtered) | *"Nothing filtered"* |
 | No call-log permission | permission gate explaining **why**, with Allow; `blocked` shows Open settings instead |
 | Offline | thin banner: calls and history work; DIALR names and spam checks paused |
 
-**Gestures:** swipe right to call, left to message.
-
 ---
 
-## 4. History *(overlay, near-full height, stops at the dock)*
+## 4. History *(overlay, `.sheet--full`, stops above the dock AND whatever's
+in the bottom slot for the underlying tab — filter bar/search bar stay
+visible and usable beneath it)*
+
+Mounted with a **null** sheet title (`overlays.js`) — `HistoryPanel` owns its
+whole header itself (eyebrow "HISTORY" + name + number), so there's exactly
+one identity header, not the sheet's title stacked above a second one. The
+wrapper's own `.sheet__close` (48×48) is the only close affordance. No
+avatar. No fake "Send a text / History" tab pair — text folds into the
+contact card's icon row below.
 
 ```
-HISTORY
-CHHETRI
-AVNI                    10 minutes ago    ☏  ◉
-──────────
-Send a text                          ⟨wa⟩ ⟨bell⟩
-HISTORY                        CLEAR THE HISTORY
+HISTORY                                              ✕
+AVNI                                   10 minutes ago
 +91 98420 04200
-Usually answers around 10 PM
+
+[ ☏ ]  [ 💬 ]  [ whatsapp ]  [ person ]     ← contact card, no avatar
+
+Usually answers around 10 PM        CLEAR THE HISTORY
 ─────────────────────────────────────────────
 TODAY
-NIGHT 11 PM                    ┌──────────────────┐
-6 minutes · Avni called you.   │ Red skirt—Amazon │
-                               └──────────────────┘
-AFTERNOON 3:13 PM
-You called Avni. No answer.  [NO ANSWER]
+
+◉  NIGHT 11 PM
+   6 minutes · Avni called you.
+   ┃ Red skirt — Amazon
+
+YESTERDAY
+
+⊗  AFTERNOON 3:13 PM
+   You called Avni. No answer.
 ─────────────────────────────────────────────
             [ CHECK REWIND ✦ ]
 ```
 
-Day headings (Today / Yesterday / Earlier this week / month) are rows in the same
-keyed list. The list fades into the Rewind button rather than being sliced by it.
+A status glyph (green `phoneDown` circle / red `phoneMissed` circle) replaces
+the old text tag ("No answer", "Missed") — the meta line already says that in
+prose (`callSentence`), so the tag was pure duplication. The note is an
+inline pill (amber left rule) under the entry it annotates, not a
+sticky-note bubble floating beside it. Day headings get real air
+(`--group-gap`, 64px) instead of a tight `--sp-6`. The list fades into the
+Rewind button rather than being sliced by it.
 
 | State | Content |
 |---|---|
@@ -160,7 +183,9 @@ keyed list. The list fades into the Rewind button rather than being sliced by it
 | Fewer calls than `rewindMinCalls` | Rewind button hidden |
 | Clear the history | confirmation sheet; destructive, irreversible, says so |
 
-**Dock:** **CALL AVNI** + History.
+**Dock:** **CALL AVNI** + History (unchanged — `overlayContext` in
+`dockController.js` supplies this for any overlay carrying a `contactKey`,
+so `HistoryPanel` doesn't need its own call button).
 
 ---
 

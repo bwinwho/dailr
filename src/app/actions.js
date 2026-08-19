@@ -294,6 +294,7 @@ export function createActions({ store, services, theme }) {
       case 'remind': return openReminder(number, { first: selContactsByKey(state()).get(contactKey)?.firstName });
       case 'copy-number': return copy(number);
       case 'clear-history': return confirmClearHistory(contactKey);
+      case 'profile': return openContact(contactKey, number);
       default: return undefined;
     }
   }

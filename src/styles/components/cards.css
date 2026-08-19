@@ -3,63 +3,43 @@
    ========================================================================== */
 
 /* ------------------------------------------------------------ recent card */
-/* Restructured per docs/UI_REVISION_PLAN.md § D1 — measured before and after
-   with tools/audit.mjs. Was 126–195px per card with an 8px gap and every
-   name/time pair wrapping to a second line at 360px; now a two-column grid
-   that never wraps, at 14px padding / 12px gap, ~84–112px per card. */
+/* Restructured twice — see docs/UI_REVISION_PLAN.md § D1 (five rows down to
+   two) and Project Clean Slate (avatar and swipe-to-reveal removed, replaced
+   with two always-visible icon buttons; see RecentCard.js). Cards separate
+   by space, not a plate — .rcard drops its filled background for a hairline
+   below, and .recents__list is a .stack (see layout.css). */
 .rcard {
   position: relative;
   display: block; width: 100%;
-  margin-bottom: var(--sp-5);           /* 12px — was --card-gap (8px) */
-  padding: var(--sp-5);                 /* 14px — was --card-pad (16px) */
-  border-radius: var(--card-radius);
-  background: var(--surface-3);
-  box-shadow: var(--sh-1);
-  overflow: hidden;
-  transition: transform var(--d-base) var(--e-spring),
-              background var(--d-base) var(--e-standard),
-              box-shadow var(--d-base) var(--e-standard);
+  padding: var(--sp-5) 0;
+  border-bottom: 1px solid var(--line-hairline);
+  transition: background var(--d-base) var(--e-standard);
   cursor: pointer;
 }
-.rcard:active { transform: scale(.99); }
-.rcard.is-expanded { background: var(--surface-4); box-shadow: var(--sh-3); }
-.rcard--compact { padding: var(--sp-4); }
+.rcard:last-child { border-bottom: 0; }
+.rcard:active { background: var(--surface-1); }
+.rcard.is-expanded { background: var(--surface-2); }
+.rcard--compact { padding: var(--sp-4) 0; }
 
-/* swipe affordances */
-.rcard::before, .rcard::after {
-  content: ""; position: absolute; top: 0; bottom: 0; width: 92px;
-  display: grid; place-items: center;
-  opacity: 0; transition: opacity var(--d-fast) var(--e-standard);
-  pointer-events: none;
-}
-.rcard::before { left: -92px; background: var(--positive); }
-.rcard::after  { right: -92px; background: var(--surface-4); }
-.rcard.is-swipe-call::before { opacity: 1; }
-.rcard.is-swipe-msg::after   { opacity: 1; }
-
-/* ---- head: a fixed 4-column grid, not a flex row that reflows -----------
-   col1 avatar · col2 name (flexible) · col3 time (capped) · col4 call.
-   Avatar and call button span every row and centre vertically, so the card
-   can grow a meta line and a note underneath without stranding either at
-   the top. Name and time never wrap — see fitText() in DialerCard's caller
-   and the capped time column below; below their floors, ellipsis is the
-   honest answer, not a second line. */
+/* ---- head: a fixed 3-column grid, not a flex row that reflows -----------
+   col1 name (flexible) · col2 time (capped) · col3 the two action buttons.
+   The buttons span every row and centre vertically, so the card can grow a
+   meta line and a note underneath without stranding them at the top. Name
+   and time never wrap — see fitText() in the caller and the capped time
+   column below; below their floors, ellipsis is the honest answer, not a
+   second line. */
 .rcard__head {
   display: grid;
-  /* Column 1 matches --avatar-sm (38px) — the plan called for 44px, which
-     has no token in the size scale (38 or 54); 38 is the closer of the two
-     and matches every other dense list row (Contacts' .crow). The call
-     button stays a true 44px target in its own column regardless. */
-  grid-template-columns: var(--avatar-sm) minmax(0, 1fr) minmax(0, 92px) 44px;
-  column-gap: var(--sp-4);
-  row-gap: 3px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 92px) auto;
+  column-gap: var(--sp-5);
+  row-gap: 4px;
   align-items: center;
 }
-.rcard__head > .avatar { grid-column: 1; grid-row: 1 / -1; align-self: center; }
-.rcard__call { grid-column: 4; grid-row: 1 / -1; align-self: center; justify-self: center; }
+.rcard__acts { grid-column: 3; grid-row: 1 / -1; align-self: center;
+               display: flex; gap: var(--sp-4); }
 
 .rcard__name {
-  grid-column: 2; grid-row: 1;
+  grid-column: 1; grid-row: 1;
   min-width: 0;
   font-family: var(--font-display);
   font-weight: var(--w-black);
@@ -84,31 +64,27 @@
 }
 
 .rcard__when {
-  grid-column: 3; grid-row: 1;
+  grid-column: 2; grid-row: 1;
   min-width: 0; text-align: right;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* meta / chip / note deliberately have NO explicit grid-row — they auto-flow
-   into whatever rows remain, in DOM order. A fixed row number looked simpler
-   but an empty row still claims a full row-gap above and below it once
-   anything is placed after it — a hidden chip was quietly adding ~8px to
-   every note-bearing card. Auto-flow means a `display:none` chip is not a
-   grid item at all, so the note lands directly under the meta line with
-   nothing but its own gap. */
+/* meta / note deliberately have NO explicit grid-row — they auto-flow into
+   whatever rows remain, in DOM order. A fixed row number looked simpler but
+   an empty row still claims a full row-gap above and below it once anything
+   is placed after it. Auto-flow means a hidden note is not a grid item at
+   all, so nothing downstream inherits a phantom gap. */
 .rcard__meta {
-  grid-column: 2 / span 2;
+  grid-column: 1 / span 2;
   min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .rcard__meta.c-2    { color: var(--fg-secondary); }
 .rcard__meta.c-warn { color: var(--warn); }
-
-.rcard__chip { grid-column: 2 / span 2; margin-top: 1px; }
-.rcard__chip.is-hidden { display: none; }
+.rcard__meta.c-neg  { color: var(--negative); }
 
 .rcard__note {
-  grid-column: 2 / span 2;
+  grid-column: 1 / span 2;
   padding-left: var(--sp-4);
   border-left: 2px solid var(--note);
   color: var(--fg-secondary);
@@ -116,15 +92,19 @@
 }
 .rcard__note.is-hidden { display: none; }
 
-.rcard__call {
+/* ---- action cluster: [ call ][ more ] — outlined circles, per the
+   reference deck. Exactly one colour on this screen lives in the dialer, not
+   here; see docs/UI_REVISION_PLAN's Clean Slate notes if that changes. ---- */
+.rcard__act {
+  width: var(--touch-min); height: var(--touch-min);
+  border-radius: var(--r-circle);
   display: grid; place-items: center;
-  width: 44px; height: 44px; border-radius: var(--r-circle);
-  background: var(--bg); color: var(--fg);
+  box-shadow: inset 0 0 0 1.6px var(--line-strong);
+  color: var(--fg);
   transition: transform var(--d-fast) var(--e-spring), background var(--d-fast) var(--e-standard);
 }
-.rcard__call:active { transform: scale(.9); }
-.rcard__call svg { width: 19px; height: 19px; }
-.rcard.is-expanded .rcard__call { background: var(--accent); color: var(--accent-ink); }
+.rcard__act:active { transform: scale(.92); background: var(--surface-2); }
+.rcard__act svg { width: 20px; height: 20px; }
 
 /* expansion */
 .rcard__expansion {
@@ -134,12 +114,12 @@
 .rcard__rule { margin: var(--sp-5) 0 var(--sp-5); }
 .rcard__expansion-inner { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-5); }
 
-/* Actions are real 44px rows now — the previous version was 15px text
+/* Actions are real --touch-min rows now — the previous version was 15px text
    links, well under the accessibility minimum. Measured with tools/audit.mjs. */
 .rcard__actions { display: flex; flex-direction: column; align-items: stretch; gap: var(--sp-2); flex: 1 1 auto; min-width: 0; }
 .rcard__action {
   display: flex; align-items: center; gap: var(--sp-4);
-  min-height: 44px; padding: 0 var(--sp-2);
+  min-height: var(--touch-min); padding: 0 var(--sp-2);
   border-radius: var(--r-md);
   color: var(--fg); text-align: left;
 }
@@ -150,7 +130,7 @@
 .rcard__quick { display: flex; gap: var(--sp-4); flex: 0 0 auto; }
 .rcard__quick-btn {
   display: grid; place-items: center;
-  width: 44px; height: 44px; border-radius: var(--r-circle);
+  width: var(--touch-min); height: var(--touch-min); border-radius: var(--r-circle);
   color: var(--fg);
   box-shadow: inset 0 0 0 1.6px var(--line-strong);
 }
@@ -158,36 +138,31 @@
 .rcard__quick-btn svg { width: 21px; height: 21px; }
 
 /* ------------------------------------------------------------ history --- */
+/* Flat header: eyebrow "History" + name/number, left-aligned. No avatar, no
+   call button here — call is one of the four icons in .hpanel__actions
+   below. The wrapping Sheet (null title) supplies the one close X. */
 .hpanel { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-.hpanel__head { display: flex; align-items: flex-start; gap: var(--sp-5); }
-.hpanel__eyebrow.is-hidden { display: none; }
-.hpanel__nameline { display: flex; align-items: baseline; gap: var(--sp-4); }
+.hpanel__head { display: flex; flex-direction: column; }
+.hpanel__nameline { display: flex; align-items: baseline; gap: var(--sp-4); margin-top: var(--sp-2); }
 .hpanel__name { letter-spacing: var(--tr-tightest); }
-.hpanel__aside { display: flex; align-items: center; gap: var(--sp-4); flex: 0 0 auto; }
-.hpanel__call {
-  display: grid; place-items: center; width: 44px; height: 44px;
-  border-radius: var(--r-circle); background: var(--surface-3); color: var(--fg);
-}
-.hpanel__call svg { width: 20px; height: 20px; }
-.hpanel__rule { margin: var(--sp-5) 0; }
 
-.hpanel__controls { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-5); }
-.hpanel__tabs { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
-.hpanel__tab { color: var(--fg); text-align: left; }
-.hpanel__tab.is-active { color: var(--warn); }
-.hpanel__number {
-  color: var(--fg); margin-top: var(--sp-3);
-  letter-spacing: var(--tr-wide); text-align: left; align-self: flex-start;
+/* The contact card: [call][text][whatsapp][open contact] — 48px, monochrome. */
+.hpanel__actions {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-4); margin-top: var(--sp-7);
 }
-.hpanel__quick { display: flex; gap: var(--sp-4); }
-.hpanel__quick-btn {
-  display: grid; place-items: center; width: 44px; height: 44px;
-  border-radius: var(--r-circle); color: var(--fg);
-  box-shadow: inset 0 0 0 1.6px var(--line-strong);
+.hpanel__action {
+  display: grid; place-items: center;
+  min-height: var(--touch-min);
+  border-radius: var(--r-lg);
+  background: var(--surface-2); color: var(--fg-secondary);
 }
-.hpanel__quick-btn svg { width: 21px; height: 21px; }
-.hpanel__clear { color: var(--danger); text-align: right; }
-.hpanel__besttime { margin-top: var(--sp-5); color: var(--accent); }
+.hpanel__action:active { background: var(--surface-3); }
+.hpanel__action svg { width: 20px; height: 20px; }
+
+.hpanel__foot-row { display: flex; align-items: baseline; gap: var(--sp-5); margin-top: var(--sp-6); }
+.hpanel__clear { color: var(--danger); margin-left: auto; }
+.hpanel__besttime { color: var(--accent); }
 .hpanel__besttime.is-hidden { display: none; }
 
 .hpanel__scroll {
@@ -196,43 +171,55 @@
   mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 20px), transparent 100%);
 }
 .hpanel__list { display: flex; flex-direction: column; }
-.hpanel__group { padding: var(--sp-6) 0 var(--sp-3); }
+/* Real air between day groups — see --group-gap in tokens.css. The first
+   group shouldn't open with a gap above it, since .hpanel__scroll already
+   has its own margin-top. */
+.hpanel__group { padding: var(--group-gap) 0 var(--sp-5); }
+.hpanel__group:first-child { padding-top: var(--sp-2); }
 
+/* A status glyph replaces the old text tag ("Missed" / "No answer" …) — the
+   meta line already says that in prose (callSentence), so the tag was pure
+   duplication. The glyph is the one place colour appears in this list. */
 .hentry {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  gap: var(--sp-5);
+  display: grid; grid-template-columns: 32px minmax(0, 1fr);
+  column-gap: var(--sp-5); row-gap: var(--sp-4);
+  align-items: start;
   padding: var(--sp-5) 0;
   border-bottom: 1px solid var(--line-hairline);
 }
 .hentry:last-child { border-bottom: 0; }
-.hentry__main { min-width: 0; }
+.hentry__status {
+  grid-column: 1; grid-row: 1;
+  display: grid; place-items: center;
+  width: 32px; height: 32px; border-radius: var(--r-circle);
+}
+.hentry__status svg { width: 15px; height: 15px; }
+.hentry__status.is-positive { background: rgba(22,198,90,.16); color: var(--positive); }
+.hentry__status.is-negative { background: rgba(245,51,63,.16); color: var(--negative); }
+.hentry__main { grid-column: 2; grid-row: 1; min-width: 0; }
 .hentry__when { letter-spacing: var(--tr-wide); }
 .hentry__meta { margin-top: 3px; }
-.hentry__tag {
-  display: inline-block; margin-top: var(--sp-3);
-  padding: 2px 7px; border-radius: var(--r-xs);
-  background: var(--surface-3); color: var(--fg-tertiary);
-}
-.hentry__tag[data-tone="negative"] { background: rgba(245,51,63,.16); color: var(--negative); }
-.hentry__tag[data-tone="warn"]     { background: rgba(255,176,32,.16); color: var(--warn); }
-.hentry__tag.is-hidden { display: none; }
 
-/* The note bubble — deliberately paper-white, like a sticky note. */
+/* The note pill — deliberately inverted (paper on ink / ink on paper) in
+   both modes, with the amber rule from the reference deck. --fg/--bg, not
+   the old hardcoded --n-100/--n-0, which rendered white-on-black regardless
+   of light or dark mode — a real bug the deck's inversion doesn't have. */
 .hentry__note {
-  flex: 0 1 46%;
-  padding: var(--sp-4) var(--sp-5);
-  border-radius: var(--r-md);
-  background: var(--n-100);
-  color: var(--n-0);
-  box-shadow: var(--sh-1);
-  align-self: flex-start;
+  grid-column: 2; grid-row: 2;
+  justify-self: start; max-width: 100%;
+  padding: var(--sp-3) var(--sp-5);
+  border-radius: var(--r-pill);
+  border-left: 3px solid var(--note);
+  background: var(--fg);
+  color: var(--bg);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .hentry__note.is-hidden { display: none; }
 
 .hpanel__foot { flex: 0 0 auto; padding-top: var(--sp-5); }
 .hpanel__rewind {
   display: flex; align-items: center; justify-content: center; gap: var(--sp-4);
-  width: 100%; min-height: 52px;
+  width: 100%; min-height: var(--touch-min);
   border-radius: var(--r-pill);
   background: var(--fg); color: var(--bg);
 }
@@ -269,7 +256,7 @@
 .rewind__who { display: flex; align-items: center; gap: var(--sp-4); }
 .rewind__close {
   display: grid; place-items: center; margin-left: auto;
-  width: 36px; height: 36px; border-radius: var(--r-circle);
+  width: var(--touch-min); height: var(--touch-min); border-radius: var(--r-circle);
   background: var(--surface-2); color: var(--fg-secondary);
 }
 .rewind__close svg { width: 18px; height: 18px; }
@@ -327,23 +314,39 @@
 }
 
 /* -------------------------------------------------------- contact sheet - */
-.csheet { display: flex; flex-direction: column; gap: var(--sp-7); }
-.csheet__head { display: flex; align-items: center; gap: var(--sp-5); }
+/* No avatar column (Project Clean Slate) — the head is name-only, so the
+   whole sheet gets more air between groups. */
+.csheet { display: flex; flex-direction: column; gap: var(--sp-9); }
+.csheet__head { display: flex; flex-direction: column; }
 .csheet__eyebrow.is-hidden { display: none; }
 .csheet__name { letter-spacing: var(--tr-tighter); }
 .csheet__sub { margin-top: var(--sp-2); }
 
-.csheet__actions { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--sp-3); }
+/* 3 actions, not 5 — Call/Text/WhatsApp only; History/Remind moved to
+   .csheet__links below, since they navigate rather than act. Icon only. */
+.csheet__actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-4); }
 .csheet__action {
-  display: flex; flex-direction: column; align-items: center; gap: var(--sp-3);
-  padding: var(--sp-4) 2px;
-  border-radius: var(--r-md);
+  display: grid; place-items: center;
+  min-height: 60px;
+  border-radius: var(--r-lg);
   background: var(--surface-2); color: var(--fg-secondary);
 }
 .csheet__action:active { background: var(--surface-3); }
-.csheet__action.is-accent { background: var(--accent); color: var(--accent-ink); }
+.csheet__action.is-accent { background: var(--positive); color: #fff; }
 .csheet__action-icon { display: grid; place-items: center; width: 22px; height: 22px; }
 .csheet__action-icon svg { width: 22px; height: 22px; }
+
+/* History / Remind — spaced navigation rows with a trailing chevron. */
+.csheet__links { display: flex; flex-direction: column; }
+.csheet__link {
+  display: flex; align-items: center; gap: var(--sp-5);
+  min-height: 60px; width: 100%; text-align: left;
+  border-bottom: 1px solid var(--line-hairline);
+}
+.csheet__link:last-child { border-bottom: 0; }
+.csheet__link-label { flex: 1 1 auto; min-width: 0; }
+.csheet__link-icon svg { width: 20px; height: 20px; color: var(--fg-tertiary); }
+.csheet__link-chev svg { width: 16px; height: 16px; color: var(--fg-quaternary); }
 
 .csheet__smart { display: flex; flex-direction: column; gap: var(--sp-4); }
 .csheet__smart.is-hidden { display: none; }
@@ -356,23 +359,39 @@
 .csheet__numbers, .csheet__private, .csheet__dialr, .csheet__danger { display: flex; flex-direction: column; }
 .csheet__dialr.is-hidden { display: none; }
 
-.csheet__number, .csheet__private-row, .csheet__dialr-card {
+/* .csheet__number is now a row wrapping two sibling buttons (main + copy),
+   not a single button with a nested span — see ContactSheet.js. */
+.csheet__number {
+  display: flex; align-items: center;
+  width: 100%; min-height: 54px;
+  border-bottom: 1px solid var(--line-hairline);
+}
+.csheet__number:last-child { border-bottom: 0; }
+.csheet__number-main {
+  display: flex; align-items: center; gap: var(--sp-4);
+  flex: 1 1 auto; min-width: 0; padding: var(--sp-4) 0; text-align: left;
+}
+.csheet__private-row, .csheet__dialr-card {
   display: flex; align-items: center; gap: var(--sp-4);
   width: 100%; min-height: 54px; padding: var(--sp-4) 0; text-align: left;
   border-bottom: 1px solid var(--line-hairline);
 }
-.csheet__number:last-child, .csheet__private-row:last-child { border-bottom: 0; }
-.csheet__number-copy, .csheet__private-icon { display: grid; place-items: center; width: 22px; height: 22px; color: var(--fg-quaternary); }
+.csheet__private-row:last-child { border-bottom: 0; }
+/* .csheet__number-copy is a real tap target (--touch-min); .csheet__private-icon
+   is decorative, inside an already-48px+ row, so it keeps its small box. */
+.csheet__number-copy { display: grid; place-items: center; width: var(--touch-min); height: var(--touch-min); color: var(--fg-quaternary); flex: 0 0 auto; }
+.csheet__private-icon { display: grid; place-items: center; width: 22px; height: 22px; color: var(--fg-quaternary); flex: 0 0 auto; }
 .csheet__number-copy svg, .csheet__private-icon svg { width: 18px; height: 18px; }
-.csheet__private-row svg:last-child { width: 16px; height: 16px; color: var(--fg-quaternary); }
+.csheet__row-chev { display: grid; place-items: center; width: 16px; height: 16px; color: var(--fg-quaternary); flex: 0 0 auto; }
+.csheet__row-chev svg { width: 16px; height: 16px; }
 .csheet__dialr-card { border-bottom: 0; background: var(--surface-2); border-radius: var(--r-md); padding: var(--sp-5); }
 .csheet__verified { color: var(--positive); width: 18px; height: 18px; }
 .csheet__verified svg { width: 18px; height: 18px; }
 .csheet__addcontact, .csheet__navigate {
-  display: flex; align-items: center; gap: var(--sp-3);
+  gap: var(--sp-3);
   margin-top: var(--sp-4); color: var(--accent);
 }
-.csheet__danger-row { padding: var(--sp-4) 0; text-align: left; color: var(--danger); }
+.csheet__danger-row { text-align: left; color: var(--danger); }
 .csheet__danger-row:first-of-type { border-top: 1px solid var(--line-hairline); }
 
 /* ----------------------------------------------------- contact editor --- */
@@ -393,6 +412,6 @@
   display: flex; align-items: center; gap: var(--sp-3);
   color: var(--fg-tertiary);
 }
-.ceditor__remove { width: 38px; height: 38px; justify-content: center; border-radius: var(--r-circle); background: var(--surface-2); }
+.ceditor__remove { width: var(--touch-min); height: var(--touch-min); justify-content: center; border-radius: var(--r-circle); background: var(--surface-2); }
 .ceditor__remove svg, .ceditor__add svg { width: 18px; height: 18px; }
 .ceditor__foot { display: flex; flex-direction: column; gap: var(--sp-4); margin-top: var(--sp-6); }

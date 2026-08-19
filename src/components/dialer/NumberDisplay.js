@@ -8,11 +8,10 @@
  *     only see half of is useless.
  */
 import { h, setText, toggle, on } from '../../core/dom.js';
-import { icon } from '../../core/icons.js';
 import { formatNumber } from '../../core/format.js';
 import haptics from '../../core/haptics.js';
 
-export function NumberDisplay({ onCopy, onBackspace, onClear, onMatchTap }) {
+export function NumberDisplay({ onCopy, onMatchTap }) {
   const value = h('button.numdisp__value.t-num', {
     type: 'button', aria: { label: 'Tap to copy the number' },
   });
@@ -23,14 +22,10 @@ export function NumberDisplay({ onCopy, onBackspace, onClear, onMatchTap }) {
     type: 'button', on: { click: () => onMatchTap?.() },
   }, matchName, matchMeta);
 
-  const backspace = h('button.numdisp__back', {
-    type: 'button', aria: { label: 'Delete last digit' }, html: icon('back'),
-  });
-
   const copied = h('span.numdisp__copied.t-micro', { text: 'Copied' });
 
   const el = h('div.numdisp', null,
-    h('div.numdisp__row', null, value, backspace, copied),
+    h('div.numdisp__row', null, value, copied),
     match);
 
   /* one tap copies -------------------------------------------------------- */
@@ -44,17 +39,6 @@ export function NumberDisplay({ onCopy, onBackspace, onClear, onMatchTap }) {
     setTimeout(() => copied.classList.remove('is-on'), 1100);
     onCopy?.(raw);
   });
-
-  /* backspace: tap deletes one, hold clears ------------------------------- */
-  let holdTimer = null;
-  const offDown = on(backspace, 'pointerdown', () => {
-    holdTimer = setTimeout(() => { haptics.fire('warn'); onClear?.(); holdTimer = null; }, 480);
-  });
-  const endHold = () => {
-    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; haptics.fire('key'); onBackspace?.(); }
-  };
-  const offUp = on(backspace, 'pointerup', endHold);
-  const offLeave = on(backspace, 'pointerleave', () => { clearTimeout(holdTimer); holdTimer = null; });
 
   /** Scale the readout down as it grows, instead of clipping it. */
   function fit(text) {
@@ -71,7 +55,6 @@ export function NumberDisplay({ onCopy, onBackspace, onClear, onMatchTap }) {
       setText(value, pretty);
       fit(pretty);
       toggle(el, 'is-empty', !input);
-      toggle(backspace, 'is-on', !!input);
 
       if (m) {
         setText(matchName, m.name);
@@ -81,6 +64,6 @@ export function NumberDisplay({ onCopy, onBackspace, onClear, onMatchTap }) {
       }
       toggle(match, 'is-on', !!m);
     },
-    destroy() { offCopy(); offDown(); offUp(); offLeave(); },
+    destroy() { offCopy(); },
   };
 }

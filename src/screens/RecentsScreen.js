@@ -1,26 +1,29 @@
 /**
  * DIALR — Recents screen.
  *
- * A stack of expandable cards, not a call log. Filters are chips rather than a
- * menu because there are only four and they answer real questions:
- * everything / what did I miss / who am I supposed to call back / what was junk.
+ * A stack of expandable cards, not a call log. The filter bar lives in the
+ * bottom slot — the thumb zone, where the search bar sits on Contacts — not
+ * the header; see src/state/bottomController.js. Only two filters survive
+ * (Project Clean Slate): everything / what did I miss. "To return" and
+ * "Filtered" are still real states (selRecentCounts, row.owed, spam scoring
+ * all still work) — they just aren't surfaced as tappable segments anymore.
  */
-import { h, setText, toggle, reconcile } from '../core/dom.js';
+import { h, toggle, reconcile } from '../core/dom.js';
+import { icon } from '../core/icons.js';
 import { RecentCard } from '../components/recents/RecentCard.js';
 import { EmptyState, PermissionState, Skeleton, Banner } from '../components/primitives/States.js';
-import { selRecents, selRecentCounts, selPermissionsOk } from '../state/selectors.js';
+import { selRecents, selPermissionsOk } from '../state/selectors.js';
+import { A } from '../state/actions.js';
+import haptics from '../core/haptics.js';
 
 const FILTERS = [
-  { id: 'all',    label: 'All' },
-  { id: 'missed', label: 'Missed' },
-  { id: 'owed',   label: 'To return' },
-  { id: 'spam',   label: 'Filtered' },
+  { id: 'all',    icon: 'clock',       label: 'All calls' },
+  { id: 'missed', icon: 'phoneMissed', label: 'Missed calls' },
 ];
 
 export function RecentsScreen({ store, actions }) {
   const title = h('h1.screen__title.t-screen-title', { text: 'Recents' });
-  const filterRow = h('div.recents__filters');
-  const list = h('div.recents__list');
+  const list = h('div.recents__list.stack');
   const cardStore = new Map();
   const stateSlot = h('div.recents__state');
   const bannerSlot = h('div.recents__banner');
@@ -28,25 +31,41 @@ export function RecentsScreen({ store, actions }) {
   const body = h('div.screen__body', null,
     h('div.screen__inner', null, bannerSlot, stateSlot, list));
 
+  // Search still reaches Recents-domain data (a call by number, a note by
+  // text) — it just doesn't own the bottom slot permanently anymore. This
+  // button opens it there; blur/Escape close it and the filter bar returns.
+  const searchBtn = h('button.recents__search', {
+    type: 'button', aria: { label: 'Search calls' },
+    on: { click: () => { haptics.fire('tap'); store.dispatch({ type: A.SEARCH_OPEN }); } },
+  }, h('span', { html: icon('search') }));
+
   const el = h('section.screen.screen--recents', { id: 'screen-recents', role: 'tabpanel', aria: { label: 'Recents' } },
-    h('header.screen__header', null,
-      h('div.col.g-3', null, title, filterRow)),
+    h('header.screen__header', null, title, searchBtn),
     body);
 
+  /* ---- filter bar: the bottom slot for this tab ---------------------------
+     Built ONCE; only state mutates. The previous version rebuilt every
+     button on every store change, which is why the row flickered. Both
+     segments always render — a disappearing segment would change the slot's
+     size and churn --bottom-actual on every filter change. ---------------- */
+  const filterBar = h('div.filterbar', { role: 'group', aria: { label: 'Filter calls' } });
+  const filterBtns = new Map();
+  for (const f of FILTERS) {
+    const btn = h('button.filterbar__opt', {
+      type: 'button', dataset: { id: f.id },
+      aria: { label: f.label, pressed: 'false' },
+      on: { click: () => { haptics.fire('select'); actions.setRecentsFilter(f.id); } },
+    }, h('span.filterbar__icon', { html: icon(f.icon) }));
+    filterBar.appendChild(btn);
+    filterBtns.set(f.id, btn);
+  }
+
   function renderFilters(state) {
-    const counts = selRecentCounts(state);
-    filterRow.textContent = '';
     for (const f of FILTERS) {
-      const n = counts[f.id];
-      if (f.id !== 'all' && !n) continue;          // never show an empty filter
-      filterRow.appendChild(h('button.chip.chip--neutral.recents__filter', {
-        type: 'button',
-        dataset: { selected: String(state.recents.filter === f.id) },
-        aria: { pressed: String(state.recents.filter === f.id) },
-        on: { click: () => actions.setRecentsFilter(f.id) },
-      },
-      h('span.chip__label', { text: f.label }),
-      n ? h('span.chip__count.t-num', { text: String(n) }) : null));
+      const btn = filterBtns.get(f.id);
+      const on = state.recents.filter === f.id;
+      toggle(btn, 'is-on', on);
+      btn.setAttribute('aria-pressed', String(on));
     }
   }
 
@@ -107,7 +126,6 @@ export function RecentsScreen({ store, actions }) {
           onCall: (r) => actions.call(r.entry.number, r.key),
           onExpand: (r) => actions.expandRecent(r.key),
           onAction: (id, r) => actions.recentAction(id, r),
-          onSwipe: (kind, r) => (kind === 'call' ? actions.call(r.entry.number, r.key) : actions.recentAction('text', r)),
         });
         return {
           el: card.el,
@@ -129,13 +147,16 @@ export function RecentsScreen({ store, actions }) {
     }
   }
 
-  return { el, update, destroy() { for (const i of cardStore.values()) i.destroy?.(); } };
+  return { el, bottom: filterBar, update, destroy() { for (const i of cardStore.values()) i.destroy?.(); } };
 }
 
 function emptyFor(filter, actions) {
   switch (filter) {
     case 'missed':
       return EmptyState({ iconName: 'phoneMissed', title: 'Nothing missed', body: 'You are all caught up.' });
+    // 'owed' and 'spam' are no longer reachable from the filter bar (only
+    // All/Missed remain), but the states are kept — Settings or a future
+    // surface can still land here with those filter ids.
     case 'owed':
       return EmptyState({ iconName: 'return', title: 'No calls to return', body: 'Missed calls you have not called back show up here.' });
     case 'spam':

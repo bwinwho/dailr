@@ -4,40 +4,14 @@
 
 .screen__title { flex: 1 1 auto; }
 
-/* ------------------------------------------------------------- dialer --- */
+/* ------------------------------------------------------------- dialer ---
+   Top of Mind and the empty-state recents list were removed here (Project
+   Clean Slate) — a second recents list on the dialer duplicated the Recents
+   tab, and the deck's vertical emptiness above the keypad is deliberate: see
+   the DialerScreen.js header for why that reads as centring without
+   reintroducing the layout-shift bug Phase 1 fixed. ----------------------- */
 .dialer__scroll { display: flex; flex-direction: column; justify-content: flex-end; }
-.dialer__empty.is-hidden, .dialer__topofmind.is-hidden, .dialer__suggestions.is-hidden { display: none; }
-
-.dialer__recent-label, .dialer__tom-label { margin-bottom: var(--sp-4); }
-.dialer__recent-list { display: flex; flex-direction: column; gap: var(--sp-2); margin-bottom: var(--sp-7); }
-.dialer__recent {
-  display: flex; align-items: center; gap: var(--sp-4);
-  padding: var(--sp-4) var(--sp-5);
-  border-radius: var(--r-md);
-  background: var(--surface-1);
-  text-align: left;
-}
-.dialer__recent:active { background: var(--surface-2); }
-.dialer__recent-icon { display: grid; place-items: center; width: 34px; height: 34px;
-                       border-radius: var(--r-circle); background: var(--surface-3); }
-.dialer__recent-icon svg { width: 17px; height: 17px; }
-
-.dialer__tom { margin-bottom: var(--sp-7); }
-.dialer__tom-row, .contacts__tom-strip {
-  display: flex; gap: var(--sp-5); overflow-x: auto; scrollbar-width: none;
-  padding-bottom: var(--sp-2);
-  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 30px), transparent 100%);
-  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 30px), transparent 100%);
-}
-.dialer__tom-row::-webkit-scrollbar, .contacts__tom-strip::-webkit-scrollbar { height: 0; }
-.dialer__tom-item, .contacts__tom-item {
-  display: flex; flex-direction: column; align-items: center; gap: var(--sp-3);
-  flex: 0 0 auto; width: 62px;
-}
-.dialer__tom-name, .contacts__tom-item .t-micro {
-  max-width: 62px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  color: var(--fg-tertiary);
-}
+.dialer__suggestions.is-hidden { display: none; }
 
 .dialer__suggestions { display: flex; flex-direction: column; gap: var(--sp-2); margin-bottom: var(--sp-5); }
 .dsug {
@@ -51,49 +25,17 @@
 .dsug[data-kind="dialr"] { box-shadow: inset 0 0 0 1px var(--accent-line); }
 .dsug__meta { color: var(--fg-tertiary); }
 .dsug__go, .dsug__add {
-  display: grid; place-items: center; width: 36px; height: 36px;
+  display: grid; place-items: center; width: 48px; height: 48px;
   border-radius: var(--r-circle); background: var(--surface-3); color: var(--fg); flex: 0 0 auto;
 }
-.dsug__go svg, .dsug__add svg { width: 17px; height: 17px; }
+.dsug__go svg, .dsug__add svg { width: 18px; height: 18px; }
 
-/* deck = number readout + keypad, in the bottom slot */
-.dialer__deck { display: flex; flex-direction: column; gap: var(--sp-4); }
+/* deck = number readout + keypad + action row, in the bottom slot */
+.dialer__deck { display: flex; flex-direction: column; align-items: center;
+                gap: var(--sp-7); padding-bottom: var(--sp-4); }
 
-/* ---- persistent dial button -----------------------------------------------
-   Mounted once, never removed. Only label/tone/disabled change — see
-   DialCallButton.js for why this replaced the dock's context row here. */
-.dcallbtn {
-  display: flex; align-items: center; justify-content: center; gap: var(--sp-4);
-  width: 100%; min-height: 52px;
-  border-radius: var(--r-pill);
-  background: var(--accent);
-  color: var(--accent-ink);
-  transition: opacity var(--d-fast) var(--e-standard), transform var(--d-fast) var(--e-standard),
-              background var(--d-base) var(--e-standard);
-}
-.dcallbtn:active:not(:disabled) { transform: scale(.98); }
-.dcallbtn:disabled { opacity: .38; }
-.dcallbtn[data-tone="warn"]    { background: var(--warn);    color: #241800; }
-.dcallbtn[data-tone="neutral"] { background: var(--surface-4); color: var(--fg); }
-.dcallbtn__icon { display: grid; place-items: center; width: 20px; height: 20px; flex: 0 0 auto; }
-.dcallbtn__icon svg { width: 20px; height: 20px; }
-.dcallbtn__text { display: flex; flex-direction: column; align-items: center; min-width: 0; }
-.dcallbtn__label {
-  font-family: var(--font-display); font-weight: var(--w-black);
-  font-size: calc(var(--t-body-lg) * var(--fs));
-  text-transform: uppercase; letter-spacing: var(--tr-tight);
-  line-height: 1.1;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
-}
-.dcallbtn__sub {
-  font-size: calc(var(--t-micro) * var(--fs)); letter-spacing: var(--tr-wide);
-  opacity: .7; margin-top: 1px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
-}
-.dcallbtn__sub.is-hidden { display: none; }
-
-.numdisp { display: flex; flex-direction: column; gap: var(--sp-2); }
-.numdisp__row { display: flex; align-items: center; gap: var(--sp-4); min-height: 54px; }
+.numdisp { display: flex; flex-direction: column; gap: var(--sp-2); width: 100%; }
+.numdisp__row { display: flex; align-items: center; gap: var(--sp-4); min-height: 54px; position: relative; }
 .numdisp__value {
   flex: 1 1 auto; min-width: 0;
   text-align: left;
@@ -111,20 +53,12 @@
   font-size: calc(var(--t-body) * var(--fs));
   letter-spacing: 0;
 }
-.numdisp__back {
-  display: none; place-items: center;
-  width: 44px; height: 44px; border-radius: var(--r-circle);
-  background: var(--surface-2); color: var(--fg-secondary); flex: 0 0 auto;
-}
-.numdisp__back.is-on { display: grid; }
-.numdisp__back svg { width: 20px; height: 20px; }
 .numdisp__copied {
-  position: absolute; right: 60px;
+  position: absolute; right: 0;
   opacity: 0; transform: translateY(4px);
   color: var(--accent);
   transition: opacity var(--d-fast) var(--e-standard), transform var(--d-fast) var(--e-standard);
 }
-.numdisp__row { position: relative; }
 .numdisp__copied.is-on { opacity: 1; transform: none; }
 
 /* Always in flow, fixed height, opacity-toggled — never display:none/flex.
@@ -151,39 +85,103 @@
 
 .dialpad {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, var(--key-size));
   gap: var(--key-gap);
+  justify-content: center;
+  margin-inline: auto;
+  width: max-content;
 }
 .dialpad__key {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 1px;
-  height: var(--key-size);
-  border-radius: var(--r-lg);
-  background: var(--surface-2);
+  width: var(--key-size); height: var(--key-size);
+  border-radius: var(--r-circle);
+  display: grid; place-items: center;
+  background: transparent;      /* bare digits, no key plates — per the deck */
+  color: var(--fg);
   transition: background var(--d-instant) var(--e-standard), transform var(--d-instant) var(--e-standard);
 }
-.dialpad__key.is-down { background: var(--surface-4); transform: scale(.96); }
+.dialpad__key.is-down { background: var(--surface-2); transform: scale(.94); }
 .dialpad__digit {
-  font-size: calc(var(--t-display-s) * var(--fs));
+  font-size: calc(var(--key-digit) * var(--fs));
   font-weight: var(--w-medium);
   line-height: 1;
 }
-.dialpad__letters { color: var(--fg-quaternary); letter-spacing: var(--tr-widest); }
+.dialpad__letters { display: none; }   /* T9 still works; the hint is noise */
 
-/* ------------------------------------------------------------ recents --- */
-.recents__filters { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
-.recents__filter { min-height: 30px; }
+/* ---- action row: [ add contact ] [ CALL ] [ backspace ] -------------------
+   All three are mounted permanently; inapplicable ones fade via opacity, not
+   display:none — see DialerScreen.js. The grid keeps its column widths so the
+   green button never slides sideways as you type. ------------------------ */
+.dialer__actions {
+  display: grid;
+  grid-template-columns: var(--dial-action) var(--dial-call) var(--dial-action);
+  align-items: center; justify-items: center;
+  gap: var(--sp-8);
+  margin-inline: auto;
+}
+.dial-action {
+  width: var(--dial-action); height: var(--dial-action);
+  border-radius: var(--r-circle); display: grid; place-items: center;
+  box-shadow: inset 0 0 0 1.6px var(--line-strong);
+  color: var(--fg-secondary);
+  transition: opacity var(--d-base) var(--e-standard);
+}
+.dial-action svg { width: 22px; height: 22px; }
+.dial-action.is-off { opacity: 0; pointer-events: none; }
+
+/* ---- persistent dial button -----------------------------------------------
+   Mounted once, never removed. Only tone/disabled change — see
+   DialCallButton.js for why this replaced the dock's context row here. */
+.dialcall {
+  width: var(--dial-call); height: var(--dial-call);
+  border-radius: var(--r-circle); display: grid; place-items: center;
+  background: var(--positive); color: #fff;   /* the one colour on this screen */
+  box-shadow: 0 6px 20px rgba(22,198,90,.32);
+  transition: opacity var(--d-fast) var(--e-standard), transform var(--d-fast) var(--e-standard),
+              background var(--d-base) var(--e-standard), box-shadow var(--d-base) var(--e-standard);
+}
+.dialcall svg { width: 28px; height: 28px; }
+.dialcall:active:not(:disabled) { transform: scale(.96); }
+.dialcall:disabled { opacity: .34; box-shadow: none; }
+.dialcall[data-tone="warn"]    { background: var(--warn);    color: #241800; box-shadow: none; }
+.dialcall[data-tone="neutral"] { background: var(--surface-4); color: var(--fg); box-shadow: none; }
+
+/* ------------------------------------------------------------ recents ---
+   The filter bar (All/Missed) lives in the bottom slot, not here — see
+   dock.css for .filterbar (styled to match .search, which it displaces). */
+.recents__search {
+  display: grid; place-items: center;
+  width: var(--touch-min); height: var(--touch-min);
+  border-radius: var(--r-circle);
+  background: var(--surface-3); color: var(--fg);
+  flex: 0 0 auto;
+}
+.recents__search svg { width: 19px; height: 19px; }
 .recents__list { display: flex; flex-direction: column; }
 
 /* ----------------------------------------------------------- contacts --- */
 .contacts__add {
   display: grid; place-items: center;
-  width: 44px; height: 44px; border-radius: var(--r-circle);
+  width: var(--touch-min); height: var(--touch-min); border-radius: var(--r-circle);
   background: var(--surface-3); color: var(--fg); flex: 0 0 auto;
 }
 .contacts__add svg { width: 20px; height: 20px; }
 .contacts__tom { margin-bottom: var(--sp-7); display: flex; flex-direction: column; gap: var(--sp-4); }
 .contacts__tom.is-hidden { display: none; }
+.contacts__tom-strip {
+  display: flex; gap: var(--sp-5); overflow-x: auto; scrollbar-width: none;
+  padding-bottom: var(--sp-2);
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 30px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 30px), transparent 100%);
+}
+.contacts__tom-strip::-webkit-scrollbar { height: 0; }
+.contacts__tom-item {
+  display: flex; flex-direction: column; align-items: center; gap: var(--sp-3);
+  flex: 0 0 auto; width: 62px;
+}
+.contacts__tom-item .t-micro {
+  max-width: 62px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--fg-tertiary);
+}
 .contacts__dupe {
   display: flex; align-items: center; gap: var(--sp-4);
   width: 100%; padding: var(--sp-4) var(--sp-5);
@@ -198,13 +196,14 @@
   display: flex; align-items: center; gap: var(--sp-4);
   width: 100%; min-height: 62px; padding: var(--sp-3) 0; text-align: left;
   border-bottom: 1px solid var(--line-hairline);
+  cursor: pointer;
 }
 .crow:active { background: var(--surface-1); }
 .crow__sub { color: var(--fg-tertiary); }
 .crow__star { width: 15px; height: 15px; color: var(--warn); }
 .crow__star svg { width: 15px; height: 15px; }
 .crow__call {
-  display: grid; place-items: center; width: 40px; height: 40px;
+  display: grid; place-items: center; width: var(--touch-min); height: var(--touch-min);
   border-radius: var(--r-circle); background: var(--surface-2); color: var(--fg); flex: 0 0 auto;
 }
 .crow__call svg { width: 18px; height: 18px; }
@@ -224,7 +223,7 @@
 .you__seg { display: flex; flex-direction: column; gap: var(--sp-3); }
 .you__seg-opts { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--sp-2); }
 .you__seg-opt {
-  min-height: 40px; border-radius: var(--r-md);
+  min-height: var(--touch-min); border-radius: var(--r-md);
   background: var(--surface-2); color: var(--fg-tertiary);
 }
 .you__seg-opt[data-selected="true"] { background: var(--fg); color: var(--bg); }
@@ -272,7 +271,7 @@
 .profile__links { display: flex; gap: var(--sp-4); margin-top: var(--sp-3); }
 .profile__link {
   display: grid; place-items: center;
-  width: 46px; height: 46px; border-radius: var(--r-circle);
+  width: var(--touch-min); height: var(--touch-min); border-radius: var(--r-circle);
   color: var(--fg);
   box-shadow: inset 0 0 0 1.6px var(--line-strong);
 }
@@ -371,7 +370,7 @@
 .settings { display: flex; flex-direction: column; height: 100%; min-height: 0; gap: var(--sp-5); }
 .settings__head { display: flex; align-items: center; gap: var(--sp-4); flex: 0 0 auto; }
 .settings__back {
-  display: grid; place-items: center; width: 38px; height: 38px;
+  display: grid; place-items: center; width: var(--touch-min); height: var(--touch-min);
   border-radius: var(--r-circle); background: var(--surface-3); color: var(--fg); flex: 0 0 auto;
 }
 .settings__back.is-hidden { display: none; }
@@ -384,7 +383,11 @@
 }
 .settings__search-icon { display: grid; place-items: center; width: 18px; height: 18px; color: var(--fg-tertiary); }
 .settings__search-icon svg { width: 18px; height: 18px; }
-.settings__search-input { flex: 1; font-size: calc(var(--t-body-sm) * var(--fs)); }
+/* min-height directly on the input, not align-self:stretch on the wrapper's
+   cross axis — this row has vertical padding (unlike .search in dock.css,
+   which doesn't), so stretching only reached the padding-reduced content
+   box, not the full --touch-min. */
+.settings__search-input { flex: 1; min-height: var(--touch-min); font-size: calc(var(--t-body-sm) * var(--fs)); }
 .settings__body { flex: 1 1 auto; min-height: 0; }
 
 .settings__section {
@@ -448,7 +451,7 @@
 .wpick__controls { display: flex; flex-direction: column; gap: var(--sp-4); }
 .wpick__intensity { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--sp-2); }
 .wpick__int-opt {
-  min-height: 38px; border-radius: var(--r-md);
+  min-height: var(--touch-min); border-radius: var(--r-md);
   background: var(--surface-2); color: var(--fg-tertiary);
 }
 .wpick__int-opt[data-selected="true"] { background: var(--fg); color: var(--bg); }

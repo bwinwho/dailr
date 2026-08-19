@@ -14,18 +14,27 @@
 import { h, setText, toggle } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { formatNumber, relativeTime, PRONOUN_OPTIONS, spokenDuration } from '../../core/format.js';
-import { Avatar } from '../primitives/Avatar.js';
 import haptics from '../../core/haptics.js';
+
+/** History and Remind are navigations, not peer actions of Call/Text/
+ *  WhatsApp — they open something else, they don't act on this number. Both
+ *  ids are already handled unchanged in app/actions.js. */
+const LINKS = [
+  { id: 'history', ic: 'clock', label: 'History' },
+  { id: 'remind',  ic: 'bell',  label: 'Remind me' },
+];
 
 export function ContactSheet({ detail, settings, number, onAction }) {
   let props = { detail, settings, number };
 
+  // No avatar (Project Clean Slate — Recents/Contacts/History/ContactSheet
+  // never show a photo). The name is the head.
   const eyebrow = h('div.csheet__eyebrow.t-eyebrow');
   const name = h('h2.csheet__name.t-display-m');
   const sub = h('div.csheet__sub.t-label.c-3');
-  const avatar = Avatar({ size: 'lg', name: '', src: null });
 
   const actionRow = h('div.csheet__actions');
+  const links = h('div.csheet__links');
   const numbers = h('div.csheet__numbers');
   const smart = h('div.csheet__smart');
   const dialrBlock = h('div.csheet__dialr');
@@ -33,9 +42,9 @@ export function ContactSheet({ detail, settings, number, onAction }) {
   const dangerBlock = h('div.csheet__danger');
 
   const el = h('div.csheet', null,
-    h('div.csheet__head', null, avatar.el,
-      h('div.col.grow', null, eyebrow, name, sub)),
+    h('div.csheet__head', null, eyebrow, name, sub),
     actionRow,
+    links,
     smart,
     h('div.csheet__group', null,
       h('h3.csheet__group-title.t-micro.c-4', { text: 'On this phone' }),
@@ -44,12 +53,13 @@ export function ContactSheet({ detail, settings, number, onAction }) {
     privateBlock,
     dangerBlock);
 
+  // Icon only — call/text/whatsapp are peer actions on this number. WhatsApp
+  // stays monochrome (stroke, currentColor — see icons.js) here; brand green
+  // is reserved for ProfileView.
   const ACTIONS = [
     { id: 'call',     ic: 'phone',    label: 'Call',    tone: 'accent' },
     { id: 'text',     ic: 'message',  label: 'Message' },
     { id: 'whatsapp', ic: 'whatsapp', label: 'WhatsApp' },
-    { id: 'history',  ic: 'clock',    label: 'History' },
-    { id: 'remind',   ic: 'bell',     label: 'Remind' },
   ];
 
   function renderActions() {
@@ -58,8 +68,20 @@ export function ContactSheet({ detail, settings, number, onAction }) {
       actionRow.appendChild(h(`button.csheet__action${a.tone ? '.is-accent' : ''}`, {
         type: 'button', aria: { label: a.label },
         on: { click: () => { haptics.fire('tap'); onAction?.(a.id); } },
-      }, h('span.csheet__action-icon', { html: icon(a.ic) }),
-         h('span.t-micro', { text: a.label })));
+      }, h('span.csheet__action-icon', { html: icon(a.ic) })));
+    }
+  }
+
+  function renderLinks() {
+    links.textContent = '';
+    for (const l of LINKS) {
+      links.appendChild(h('button.csheet__link', {
+        type: 'button',
+        on: { click: () => { haptics.fire('tap'); onAction?.(l.id); } },
+      },
+      h('span.csheet__link-icon', { html: icon(l.ic) }),
+      h('span.csheet__link-label.t-body', { text: l.label }),
+      h('span.csheet__link-chev', { html: icon('chevronR') })));
     }
   }
 
@@ -90,20 +112,26 @@ export function ContactSheet({ detail, settings, number, onAction }) {
     numbers.textContent = '';
     const list = d.view?.numbers?.length ? d.view.numbers : [{ value: props.number, label: 'Number', primary: true }];
     for (const n of list) {
-      numbers.appendChild(h('button.csheet__number', {
-        type: 'button',
-        on: { click: () => onAction?.('call-number', n.value) },
-      },
-      h('span.col.grow', null,
-        h('span.t-body.t-num', { text: formatNumber(n.value) }),
-        h('span.t-caption', { text: n.label || 'Mobile' })),
-      h('span.csheet__number-copy', {
-        html: icon('copy'),
-        on: { click: (e) => { e.stopPropagation(); onAction?.('copy-number', n.value); } },
-      })));
+      // A row with two independent actions (tap to call, tap the copy icon
+      // to copy) is two sibling buttons, not a button nested inside a
+      // button — the previous span-with-role="button" markup was invalid
+      // and is why copy sometimes fired the row's own click too.
+      numbers.appendChild(h('div.csheet__number', null,
+        h('button.csheet__number-main', {
+          type: 'button',
+          on: { click: () => onAction?.('call-number', n.value) },
+        },
+        h('span.col.grow', null,
+          h('span.t-body.t-num', { text: formatNumber(n.value) }),
+          h('span.t-caption', { text: n.label || 'Mobile' }))),
+        h('button.csheet__number-copy', {
+          type: 'button', aria: { label: 'Copy number' },
+          html: icon('copy'),
+          on: { click: () => onAction?.('copy-number', n.value) },
+        })));
     }
     if (!d.view) {
-      numbers.appendChild(h('button.csheet__addcontact.t-label', {
+      numbers.appendChild(h('button.csheet__addcontact.tap.t-label', {
         type: 'button', text: 'Save this number to contacts',
         on: { click: () => onAction?.('save') },
       }));
@@ -151,11 +179,13 @@ export function ContactSheet({ detail, settings, number, onAction }) {
       h('span.col.grow', null,
         h('span.t-body-sm', { text: r.label }),
         h('span.t-caption', { text: r.value })),
-      h('span', { html: icon('chevronR') })));
+      // A real class, not a positional svg:last-child selector — the latter
+      // silently breaks the moment a row gains any other trailing element.
+      h('span.csheet__row-chev', { html: icon('chevronR') })));
     }
 
     if (v?.savedPlace) {
-      privateBlock.appendChild(h('button.csheet__navigate.t-label', {
+      privateBlock.appendChild(h('button.csheet__navigate.tap.t-label', {
         type: 'button',
         on: { click: () => onAction?.('navigate') },
       }, h('span', { html: icon('mapPin') }), h('span', { text: `Navigate to ${v.savedPlace.label}` })));
@@ -172,7 +202,7 @@ export function ContactSheet({ detail, settings, number, onAction }) {
     ];
     if (d.view) items.push({ id: 'delete', label: 'Delete contact' });
     for (const it of items) {
-      dangerBlock.appendChild(h('button.csheet__danger-row.t-label', {
+      dangerBlock.appendChild(h('button.csheet__danger-row.tap.t-label', {
         type: 'button', text: it.label,
         on: { click: () => onAction?.(it.id) },
       }));
@@ -194,9 +224,8 @@ export function ContactSheet({ detail, settings, number, onAction }) {
     setText(name, v?.firstName || display);
     setText(sub, v?.label || v?.org || (p ? 'On DIALR' : 'Not in your contacts'));
 
-    avatar.update({ name: display, src: v?.avatar || p?.avatarUrl || null, ring: !!p });
-
     renderActions();
+    renderLinks();
     renderSmart(d);
     renderNumbers(d);
     renderDialr(d, props.settings);
@@ -205,5 +234,5 @@ export function ContactSheet({ detail, settings, number, onAction }) {
   }
 
   update({});
-  return { el, update, destroy() { avatar.destroy(); } };
+  return { el, update, destroy() {} };
 }

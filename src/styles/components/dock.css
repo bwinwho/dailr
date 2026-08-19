@@ -72,9 +72,8 @@
 .dock.has-context .dock__cta:not(.is-hidden) ~ .dock__aux { flex: 0 0 auto; }
 .dock__aux.is-hidden { display: none; }
 .dock__aux-btn {
-  display: flex; flex-direction: row; align-items: center; justify-content: center;
-  gap: var(--sp-3);
-  flex: 1 1 auto; min-width: 56px; min-height: 46px; padding: 0 var(--sp-5);
+  display: flex; align-items: center; justify-content: center;
+  flex: 1 1 auto; min-width: 56px; min-height: var(--touch-min); padding: 0 var(--sp-5);
   border-radius: var(--dock-radius);
   background: var(--surface-3);
   color: var(--fg-secondary);
@@ -83,14 +82,8 @@
 .dock__aux-btn:active { background: var(--surface-4); }
 .dock__aux-icon { display: grid; place-items: center; width: 20px; height: 20px; }
 .dock__aux-icon svg { width: 20px; height: 20px; }
-.dock__aux-label {
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  color: var(--fg-tertiary);
-}
-.dock.has-context .dock__cta:not(.is-hidden) ~ .dock__aux .dock__aux-label { max-width: 78px; }
-/* When the CTA is present the aux buttons drop their labels to save width. */
+/* With a CTA present the aux buttons shrink to icon squares to save width. */
 .dock.has-context .dock__cta:not(.is-hidden) ~ .dock__aux .dock__aux-btn { flex: 0 0 auto; min-width: 52px; padding: 0 var(--sp-4); }
-.dock.has-context .dock__cta:not(.is-hidden) ~ .dock__aux .dock__aux-label { display: none; }
 
 /* ---- navigation row ----------------------------------------------------- */
 .dock__nav {
@@ -108,27 +101,22 @@
 
 .dock__nav-item {
   position: relative;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px;
-  border-radius: calc(var(--dock-radius) - var(--dock-pad));
-  color: var(--fg-tertiary);
+  display: grid; place-items: center;
+  min-height: calc(var(--dock-h) - var(--dock-pad) * 2);
+  border-radius: var(--r-md);          /* rounded square, not a full-bleed pill */
+  color: var(--fg-quaternary);
   transition: color var(--d-fast) var(--e-standard), background var(--d-base) var(--e-standard);
 }
 .dock__nav-item:active { transform: scale(.95); }
-.dock__nav-icon { display: grid; place-items: center; width: 22px; height: 22px; }
-.dock__nav-icon svg { width: 22px; height: 22px; }
-.dock__nav-label {
-  opacity: 0; max-height: 0; overflow: hidden;
-  transition: opacity var(--d-base) var(--e-standard), max-height var(--d-base) var(--e-standard);
-}
+.dock__nav-icon { display: grid; place-items: center; width: var(--dock-icon); height: var(--dock-icon); }
+.dock__nav-icon svg { width: var(--dock-icon); height: var(--dock-icon); }
 .dock__nav-item.is-active {
-  color: var(--bg);
-  background: var(--fg);
+  color: var(--fg);
+  background: var(--accent-soft);
 }
-.dock__nav-item.is-active .dock__nav-label { opacity: 1; max-height: 14px; }
 
 .dock__nav-badge {
-  position: absolute; top: 7px; left: 50%; margin-left: 6px;
+  position: absolute; top: 8px; right: 12px;
   min-width: 16px; height: 16px; padding: 0 4px;
   display: none; align-items: center; justify-content: center;
   border-radius: var(--r-pill);
@@ -136,12 +124,37 @@
   font-size: 9px; letter-spacing: 0;
 }
 .dock__nav-badge.is-on { display: flex; }
-.dock__nav-item.is-active .dock__nav-badge { background: var(--bg); color: var(--fg); }
 
 /* anchored variant */
 .dock-anchored .app__bottom { padding-left: 0; padding-right: 0; padding-bottom: var(--safe-b); }
 .dock-anchored .dock__nav { border-radius: 0; box-shadow: none; }
 .dock-anchored .dock__context { padding: 0 var(--dock-inset-x); }
+
+/* ========================== recents filter bar ============================
+   Sized and shaped like .search below (it displaces it in the bottom slot on
+   Recents), so the bottom zone reads as one family and --bottom-actual
+   matches Contacts. See src/state/bottomController.js. */
+.filterbar {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  gap: 2px;
+  height: var(--filterbar-h);
+  /* 2px, not --dock-pad (6px) — the bar must clear --touch-min (48px) inside
+     --filterbar-h (52px), unlike the dock nav row which has --dock-h to
+     spare for its own 6px padding. */
+  padding: 2px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  box-shadow: var(--sh-2);
+}
+.filterbar__opt {
+  display: grid; place-items: center;
+  min-height: var(--touch-min);
+  border-radius: var(--r-pill);
+  color: var(--fg-tertiary);
+  transition: color var(--d-fast) var(--e-standard), background var(--d-base) var(--e-standard);
+}
+.filterbar__opt.is-on { background: var(--fg); color: var(--bg); }
+.filterbar__icon svg { width: 21px; height: 21px; }
 
 /* ============================== search ==================================== */
 
@@ -160,17 +173,30 @@
 .search__icon svg { width: 20px; height: 20px; }
 .search__input {
   flex: 1 1 auto; min-width: 0;
+  /* .search centers its children rather than stretching them, so the input's
+     own clickable box was only its text line-height (~22px) inside a 52px
+     bar — tapping the empty space around the text missed it. Stretch just
+     this child to the bar's full height. */
+  align-self: stretch;
   font-size: calc(var(--t-body) * var(--fs));
   color: var(--fg);
 }
 .search__input::-webkit-search-cancel-button { display: none; }
+/* The hit box is --touch-min; the visible circle stays a small 28px badge so
+   it doesn't bulk up inside the search bar — grow the hit box, not the
+   glyph, same pattern as .sheet__close. */
 .search__clear {
-  display: none; place-items: center;
-  width: 28px; height: 28px; border-radius: var(--r-circle);
-  background: var(--surface-1); color: var(--fg-secondary); flex: 0 0 auto;
+  display: none; place-items: center; position: relative;
+  width: var(--touch-min); height: var(--touch-min);
+  color: var(--fg-secondary); flex: 0 0 auto;
 }
 .search__clear.is-on { display: grid; }
-.search__clear svg { width: 15px; height: 15px; }
+.search__clear::before {
+  content: ""; position: absolute; inset: 0; margin: auto;
+  width: 28px; height: 28px; border-radius: var(--r-circle);
+  background: var(--surface-1);
+}
+.search__clear svg { position: relative; width: 15px; height: 15px; }
 
 /* ---- results panel: grows upward out of the search bar ------------------ */
 .searchres {
@@ -197,13 +223,14 @@
   display: flex; align-items: center; gap: var(--sp-4);
   width: 100%; min-height: 56px; padding: var(--sp-2) var(--sp-2); text-align: left;
   border-radius: var(--r-md);
+  cursor: pointer;
 }
 .searchres__row:active { background: var(--surface-2); }
 .searchres__glyph { display: grid; place-items: center; width: 34px; height: 34px;
                     border-radius: var(--r-circle); background: var(--surface-2); color: var(--fg-tertiary); }
 .searchres__glyph svg { width: 17px; height: 17px; }
-.searchres__call { display: grid; place-items: center; width: 36px; height: 36px;
-                   border-radius: var(--r-circle); background: var(--surface-3); color: var(--fg); }
+.searchres__call { display: grid; place-items: center; width: var(--touch-min); height: var(--touch-min);
+                   border-radius: var(--r-circle); background: var(--surface-3); color: var(--fg); flex: 0 0 auto; }
 .searchres__call svg { width: 17px; height: 17px; }
 .searchres__empty { padding: var(--sp-8) var(--sp-6); text-align: center; }
 .searchres__empty.is-hidden { display: none; }

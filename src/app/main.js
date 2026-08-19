@@ -23,6 +23,7 @@ import { FloatingDock } from '../components/dock/FloatingDock.js';
 import { SearchBar } from '../components/dock/SearchBar.js';
 import { Toast } from '../components/primitives/Toast.js';
 import { selectDockModel } from '../state/dockController.js';
+import { selectBottomSlot } from '../state/bottomController.js';
 import { DialerScreen } from '../screens/DialerScreen.js';
 import { RecentsScreen } from '../screens/RecentsScreen.js';
 import { ContactsScreen } from '../screens/ContactsScreen.js';
@@ -147,6 +148,7 @@ export async function boot(root) {
 
   /* --------------------------------------------------------- 5. render */
   const toastInstances = new Map();
+  let prevSearchOpen = false;
 
   function render(state) {
     /* onboarding takeover */
@@ -176,20 +178,30 @@ export async function boot(root) {
     }
     screens[state.app.tab].update(state);
 
-    /* Bottom slot, by tab:
-         dialer          the keypad — it *is* the search here (T9)
-         recents/contacts the search bar
-         you             nothing; a profile page has no list to search
-       One slot, context-dependent content, so the thumb zone is never wasted. */
-    const wantKeypad = state.app.tab === 'dialer';
-    const wantSearch = !wantKeypad
-      && state.app.tab !== 'you'
-      && state.settings.appearance.showSearch;
-    const desired = wantKeypad ? screens.dialer.bottom : wantSearch ? searchBar.el : null;
+    /* Bottom slot, by tab — policy lives in bottomController.js, the mirror
+       of dockController.js, so it isn't a conditional bolted onto this
+       render loop. One slot, context-dependent content, so the thumb zone is
+       never wasted. */
+    const bottomSlotId = selectBottomSlot(state);
+    const bottomSlots = {
+      keypad: () => screens.dialer.bottom,
+      search: () => searchBar.el,
+      'recents-filters': () => screens.recents.bottom,
+    };
+    const desired = bottomSlotId ? bottomSlots[bottomSlotId]() : null;
     if (shell.bottomSlot.firstChild !== desired) {
       shell.bottomSlot.textContent = '';
       if (desired) shell.bottomSlot.appendChild(desired);
     }
+    // Hop focus into the field exactly when search is EXPLICITLY opened (the
+    // open->true edge of state.search.open) — not merely when the resolved
+    // slot happens to be 'search', which is also Contacts' default idle
+    // state and must not steal focus (and re-trigger SEARCH_OPEN via the
+    // field's own onFocus handler) on every tab switch.
+    if (bottomSlotId === 'search' && state.search.open && !prevSearchOpen) {
+      requestAnimationFrame(() => searchBar.focus());
+    }
+    prevSearchOpen = state.search.open;
     searchBar.update({ value: state.search.query });
 
     /* dock */

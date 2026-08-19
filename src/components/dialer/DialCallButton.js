@@ -13,8 +13,13 @@
  *
  * This button is mounted exactly once and never removed from the layout; only
  * its label, tone and disabled state change. That is what makes it stationary.
+ *
+ * It renders as a circular icon button, no visible text — the visible "Call
+ * AVNI · Mobile" line lives in NumberDisplay's .numdisp__match row instead,
+ * which is already reserved-height so it can't shift anything either. label/
+ * sub still exist (from dialCallModel) and feed aria-label only.
  */
-import { h, setText, toggle, on } from '../../core/dom.js';
+import { h, toggle, on } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { formatNumber } from '../../core/format.js';
 import haptics from '../../core/haptics.js';
@@ -24,15 +29,11 @@ const LONG_PRESS_MS = 480;
 export function DialCallButton({ onCall, onLongPress }) {
   let target = null;   // { number, contactKey } | null
 
-  const iconEl = h('span.dcallbtn__icon', { html: icon('phone') });
-  const label = h('span.dcallbtn__label');
-  const sub = h('span.dcallbtn__sub');
-
-  const el = h('button.dcallbtn', {
+  const el = h('button.dialcall', {
     type: 'button', disabled: true,
     dataset: { tone: 'accent' },
     aria: { label: 'Call' },
-  }, iconEl, h('span.dcallbtn__text', null, label, sub));
+  }, h('span', { html: icon('phoneFill') }));
 
   let holdTimer = null;
   let longPressed = false;
@@ -61,9 +62,6 @@ export function DialCallButton({ onCall, onLongPress }) {
     target = disabled ? null : { number, contactKey };
     el.disabled = !!disabled;
     el.dataset.tone = tone || 'accent';
-    setText(label, l || 'Call');
-    setText(sub, s || '');
-    toggle(sub, 'is-hidden', !s);
     el.setAttribute('aria-label', s ? `${l}, ${s}` : (l || 'Call'));
   }
 

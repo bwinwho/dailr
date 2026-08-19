@@ -87,11 +87,11 @@
 
 .screen__header {
   flex: 0 0 auto;
-  padding: var(--sp-6) var(--screen-pad-x) var(--sp-5);
+  padding: var(--sp-9) var(--screen-pad-x) var(--sp-7);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--sp-4);
+  gap: var(--sp-5);
   z-index: var(--z-screen-head);
 }
 .screen__header--center { justify-content: center; }
@@ -106,17 +106,17 @@
   /* Content always clears the one-handed zone. --bottom-actual is measured at
      runtime (src/app/main.js) because that zone changes height: keypad on the
      dialer, search bar elsewhere, nothing at all if search is switched off. */
-  padding-bottom: calc(var(--bottom-actual, var(--bottom-zone)) + var(--sp-8));
+  padding-bottom: calc(var(--bottom-actual, var(--bottom-zone)) + var(--sp-10));
   scroll-padding-bottom: var(--bottom-actual, var(--bottom-zone));
   /* Content dissolves into the bottom zone instead of being sliced by it. */
   -webkit-mask-image: linear-gradient(to bottom,
       #000 0,
-      #000 calc(100% - var(--bottom-actual, var(--bottom-zone)) - 34px),
-      transparent calc(100% - var(--bottom-actual, var(--bottom-zone)) + 6px));
+      #000 calc(100% - var(--bottom-actual, var(--bottom-zone)) - 48px),
+      transparent calc(100% - var(--bottom-actual, var(--bottom-zone)) + 8px));
   mask-image: linear-gradient(to bottom,
       #000 0,
-      #000 calc(100% - var(--bottom-actual, var(--bottom-zone)) - 34px),
-      transparent calc(100% - var(--bottom-actual, var(--bottom-zone)) + 6px));
+      #000 calc(100% - var(--bottom-actual, var(--bottom-zone)) - 48px),
+      transparent calc(100% - var(--bottom-actual, var(--bottom-zone)) + 8px));
 }
 .screen__body::-webkit-scrollbar { width: 0; }
 .screen__body--nosearch { padding-bottom: calc(var(--bottom-actual, var(--bottom-zone-nosearch)) + var(--sp-8)); }
@@ -188,6 +188,12 @@
   padding: 0 var(--sp-6);
 }
 .app__toasts > * { pointer-events: auto; }
+
+/* ---- list rhythm ----------------------------------------------------------
+   One vertical rhythm shared by every list in the app — recents, contacts,
+   history entries. --row-gap / --group-gap are defined in tokens.css. ------ */
+.stack       { display: flex; flex-direction: column; gap: var(--row-gap); }
+.stack--airy { gap: var(--sp-8); }
 
 /* ---- flex/grid utilities ------------------------------------------------- */
 .row  { display: flex; align-items: center; }

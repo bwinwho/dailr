@@ -191,9 +191,6 @@ week late is not fading. Capped at one suggestion so it can never become a feed.
 Off by default because it is the one feature here that could feel like
 surveillance rather than help.
 
-### Swipe actions
-`smart.swipeActions` — swipe a recent card right to call, left to message.
-
 ### Speed dial
 `smart.speedDial` — hold a digit. Hold `0` for `+` regardless.
 

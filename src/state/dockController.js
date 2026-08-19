@@ -18,7 +18,7 @@
  *     one wins and the other becomes a secondary icon.
  */
 
-import { selRecentCounts, selContactsByKey } from './selectors.js';
+import { selContactsByKey } from './selectors.js';
 import { formatNumber, nameParts } from '../core/format.js';
 
 export const NAV_ITEMS = [
@@ -75,15 +75,12 @@ export function selectDockModel(state) {
 
 function recentsContext(state, base) {
   const key = state.recents.expandedKey;
-  if (!key) {
-    const counts = selRecentCounts(state);
-    const secondary = [];
-    if (counts.owed) {
-      secondary.push({ id: 'owed', icon: 'return', label: `${counts.owed} to call back`,
-                       intent: { type: 'filter-recents', filter: 'owed' } });
-    }
-    return { ...base, secondary };
-  }
+  // Collapsed Recents is nav-only. There used to be a secondary "N to call
+  // back" chip here that filtered to state.recents.filter === 'owed' — that
+  // filter option no longer exists in the bottom filter bar (Project Clean
+  // Slate, only All/Missed remain), so surfacing it here would drive the UI
+  // into a filter state with no visible selected segment.
+  if (!key) return base;
 
   const view = selContactsByKey(state).get(key);
   const name = view?.firstName || nameParts(state.recents.expandedName || '').first || 'back';

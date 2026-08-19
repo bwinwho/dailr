@@ -5,80 +5,76 @@
  * place into an action layer rather than navigating away.
  *
  * ---------------------------------------------------------------------------
- * REBUILT — see docs/UI_REVISION_PLAN.md § D1.
- *
- * The original version read:
- *
- *      CHHETRI                 ← surname
- *      AVNI      10 minutes ago← given name, large; time as a sibling
- *      She called you.         ← the event, as a sentence
- *      [ 6M ]                  ← duration chip
- *      │ Red skirt — Amazon    ← note
- *
- * five rows, most of a 360px screen eaten by three cards. Measured: 126–195px
- * per card, 8px gaps, "Mr. Prasad" and phone numbers clipped mid-word. Every
- * fix to one row broke the next, because the shape itself was wrong for
- * anything but the shortest names.
- *
- * This version is two rows, three at most:
+ * REBUILT TWICE. First pass — see docs/UI_REVISION_PLAN.md § D1 — took it
+ * from five rows down to two:
  *
  *      ◉  AVNI                              10m   ☏
  *         She called you · 6m
  *         │ Red skirt — Amazon
  *
- * The surname is gone from the card — it survives on History, the contact
- * sheet and the call screens, where there is room for it. Duration and status
- * fold into one dim meta line instead of a chip each. Exactly one chip
- * survives: suspected spam, because it needs a shield and real prominence.
- * "Trusted" and duration chips are gone; they were never load-bearing here.
+ * Project Clean Slate removes the avatar entirely (directive: no image
+ * avatars in Recents — match the reference deck) and the swipe-to-reveal
+ * gesture, replacing both the avatar's DIALR ring/spam badge and the swipe
+ * with two always-visible icon buttons:
+ *
+ *      AVNI                                  10m   ☏  ⋯
+ *      She called you · 6m
+ *      │ Red skirt — Amazon
+ *
+ * DIALR-user status no longer marks the row at all — it's still visible on
+ * the contact sheet and call screens, which is where a relationship, not a
+ * list, actually needs it. Spam folds into the meta line's colour instead of
+ * a chip, so exactly one dim line carries every non-name signal.
  *
  * The name is sized by measurement (core/dom.js › fitText), not by picking
  * between three hard buckets tuned for "AVNI" and going ragged on anyone
  * whose name doesn't happen to fit one of them.
  * ---------------------------------------------------------------------------
  */
-import { h, setText, toggle, on, afterTransition, fitText } from '../../core/dom.js';
+import { h, setText, toggle, afterTransition, fitText } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { relativeTime, callSentence, spokenDuration, isMissed } from '../../core/format.js';
-import { Avatar } from '../primitives/Avatar.js';
 import haptics from '../../core/haptics.js';
 
 const NAME_MAX = 26;
-const NAME_MIN = 16;
+// 14, not 16 — removing the avatar (Project Clean Slate) freed width but not
+// quite enough for every saved name at 360px; tools/audit.mjs caught "Mr.
+// Prasad" clipping at the old floor. Unsaved numbers below are left at their
+// original floor: an unsaved number ellipsizing is an acceptable trade
+// (the full number is always visible after tapping to expand the card); a
+// saved contact's name is the row's identity signal and shouldn't clip.
+const NAME_MIN = 14;
 // Numeric glyphs run wider per character than the condensed display face, so
 // an unsaved number needs a shorter range to fit the same column.
 const NUMBER_MAX = 19;
 const NUMBER_MIN = 14;
 
-export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction, onSwipe }) {
+export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction }) {
   let props = { row, expanded, settings };
 
-  /* ---- head: avatar | name + time | call, with meta/note below ---------- */
+  /* ---- head: name + time, call + more, with meta/note below ------------- */
   const first = h('h3.rcard__name');
   const when = h('span.rcard__when.t-body-sm.c-3');
   const meta = h('p.rcard__meta.t-body-sm');
-  const chipSlot = h('div.rcard__chip');
   const noteLine = h('div.rcard__note.t-body-sm');
 
-  // 'sm' (38px), matching every other dense list row in the app (Contacts'
-  // .crow uses the same size). 'md' (54px) sets a hard floor on every row's
-  // height regardless of how little text is in it — on a 3-line card with a
-  // note that alone was ~20px of the difference between the measured height
-  // and the plan's target.
-  const avatar = Avatar({ size: 'sm', name: '', src: null });
-
-  const callBtn = h('button.rcard__call', {
+  const callBtn = h('button.rcard__act.rcard__act--primary', {
     type: 'button', aria: { label: 'Call' },
     on: { click: (e) => { e.stopPropagation(); haptics.fire('success'); onCall?.(props.row); } },
   }, h('span', { html: icon('phone') }));
 
+  const moreBtn = h('button.rcard__act', {
+    type: 'button', aria: { label: 'More actions' },
+    on: { click: (e) => { e.stopPropagation(); haptics.fire('tap'); onExpand?.(props.row); } },
+  }, h('span', { html: icon('more') }));
+
+  const acts = h('div.rcard__acts', null, callBtn, moreBtn);
+
   const head = h('div.rcard__head', null,
-    avatar.el,
     first,
     when,
-    callBtn,
+    acts,
     meta,
-    chipSlot,
     noteLine);
 
   /* ---- expansion layer --------------------------------------------------
@@ -104,41 +100,6 @@ export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction
     },
     tabindex: '0', role: 'button',
   }, head, expansion);
-
-  /* ---- swipe: right calls, left messages -------------------------------- */
-  let sx = 0, sy = 0, dx = 0, swiping = false, locked = null;
-  const cleanups = [];
-
-  cleanups.push(on(el, 'pointerdown', (e) => {
-    if (!props.settings.smart.swipeActions || e.pointerType === 'mouse') return;
-    sx = e.clientX; sy = e.clientY; dx = 0; swiping = true; locked = null;
-    el.style.transition = 'none';
-  }));
-  cleanups.push(on(el, 'pointermove', (e) => {
-    if (!swiping) return;
-    const mx = e.clientX - sx, my = e.clientY - sy;
-    if (!locked) {
-      if (Math.abs(my) > 12 && Math.abs(my) > Math.abs(mx)) { swiping = false; el.style.transition = ''; return; }
-      if (Math.abs(mx) > 12) locked = 'x';
-      else return;
-    }
-    dx = Math.max(-140, Math.min(140, mx));
-    el.style.transform = `translate3d(${dx}px,0,0)`;
-    toggle(el, 'is-swipe-call', dx > 60);
-    toggle(el, 'is-swipe-msg', dx < -60);
-  }));
-  const endSwipe = () => {
-    if (!swiping) return;
-    swiping = false;
-    el.style.transition = '';
-    el.style.transform = '';
-    el.classList.remove('is-swipe-call', 'is-swipe-msg');
-    if (dx > 90) { haptics.fire('success'); onSwipe?.('call', props.row); }
-    else if (dx < -90) { haptics.fire('tap'); onSwipe?.('message', props.row); }
-    dx = 0;
-  };
-  cleanups.push(on(el, 'pointerup', endSwipe));
-  cleanups.push(on(el, 'pointercancel', endSwipe));
 
   /* ---- render ----------------------------------------------------------- */
 
@@ -176,13 +137,18 @@ export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction
   }
 
   /**
-   * One dim line: the event as a sentence, plus duration, plus a callback
-   * nudge when one applies. Coloured by what actually needs attention —
-   * everything else stays the same quiet secondary tone as the rest of the
-   * card, which is what makes the coloured ones legible at a glance.
+   * One dim line carries every non-name signal — the event as a sentence,
+   * duration, a callback nudge, and suspected spam (there is no chip for it
+   * anymore; a shield-worthy signal still reads fine in text, and one line
+   * is quieter than a line plus a chip). Coloured by what actually needs
+   * attention — everything else stays the same quiet secondary tone as the
+   * rest of the card, which is what makes the coloured ones legible at a
+   * glance.
    */
   function renderMeta(row, settings) {
+    const spammy = row.spam && row.spam.score >= 0.75 && !row.spam.trusted;
     const parts = [];
+    if (spammy) parts.push('Likely spam');
     parts.push(settings.recents.naturalLanguage
       ? callSentence(row.entry, row.view)
       : row.entry.disposition.replace(/-/g, ' '));
@@ -196,18 +162,7 @@ export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction
 
     const missed = isMissed(row.entry);
     meta.classList.remove('c-2', 'c-warn', 'c-neg');
-    meta.classList.add(row.owed || missed ? 'c-warn' : 'c-2');
-  }
-
-  /** At most one chip: suspected spam. Everything else lives in the meta line. */
-  function renderChip(row) {
-    chipSlot.textContent = '';
-    const spammy = row.spam && row.spam.score >= 0.75 && !row.spam.trusted;
-    toggle(chipSlot, 'is-hidden', !spammy);
-    if (!spammy) return;
-    chipSlot.appendChild(h('span.chip.chip--negative', null,
-      h('span.chip__icon', { html: icon('shield') }),
-      h('span.chip__label', { text: 'Likely spam' })));
+    meta.classList.add(spammy ? 'c-neg' : row.owed || missed ? 'c-warn' : 'c-2');
   }
 
   function update(next = {}) {
@@ -230,17 +185,9 @@ export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction
     setText(when, relativeTime(row.entry.startedAt, Date.now(), { compact: true }));
 
     renderMeta(row, settings);
-    renderChip(row);
 
     setText(noteLine, settings.recents.showNotes && row.note ? row.note : '');
     toggle(noteLine, 'is-hidden', !(settings.recents.showNotes && row.note));
-
-    avatar.update({
-      name: row.tier === 'unknown' ? '#' : row.displayName,
-      src: row.view?.avatar || row.profile?.avatarUrl || null,
-      ring: row.tier === 'dialr' || !!row.view?.isDialrUser,
-      status: row.spam?.score >= 0.75 ? 'spam' : row.owed ? 'missed' : 'none',
-    });
 
     toggle(el, 'rcard--compact', settings.appearance.cardDensity === 'compact');
 
@@ -262,5 +209,5 @@ export function RecentCard({ row, expanded, settings, onCall, onExpand, onAction
 
   update({});
 
-  return { el, update, destroy() { for (const c of cleanups) c(); avatar.destroy(); } };
+  return { el, update, destroy() {} };
 }

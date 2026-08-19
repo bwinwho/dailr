@@ -96,9 +96,9 @@
 .incall__actions { position: relative; z-index: 1; flex: 0 0 auto; display: flex; flex-direction: column; gap: var(--sp-8); }
 .incall__minors { display: flex; justify-content: center; gap: var(--sp-9); }
 .incall__minor {
-  display: flex; flex-direction: column; align-items: center; gap: var(--sp-3);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-3);
   color: var(--fg-secondary);
-  min-width: var(--touch-min);
+  min-width: var(--touch-min); min-height: var(--touch-min);
 }
 .incall__minor svg { width: 22px; height: 22px; }
 .incall__minor--danger { color: var(--fg-tertiary); }
@@ -239,7 +239,7 @@
   -webkit-backdrop-filter: blur(var(--blur-sm));
 }
 .postcall__head { display: flex; align-items: center; gap: var(--sp-4); }
-.postcall__close { display: grid; place-items: center; width: 30px; height: 30px;
+.postcall__close { display: grid; place-items: center; width: var(--touch-min); height: var(--touch-min);
                    border-radius: var(--r-circle); background: var(--surface-1); color: var(--fg-tertiary); }
 .postcall__close svg { width: 16px; height: 16px; }
 .postcall__actions { display: flex; gap: var(--sp-3); overflow-x: auto; scrollbar-width: none; }
