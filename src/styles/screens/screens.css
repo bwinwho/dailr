@@ -177,23 +177,10 @@
   background: var(--surface-3); color: var(--fg); flex: 0 0 auto;
 }
 .contacts__add svg { width: 20px; height: 20px; }
-.contacts__tom { margin-bottom: var(--sp-7); display: flex; flex-direction: column; gap: var(--sp-4); }
-.contacts__tom.is-hidden { display: none; }
-.contacts__tom-strip {
-  display: flex; gap: var(--sp-5); overflow-x: auto; scrollbar-width: none;
-  padding-bottom: var(--sp-2);
-  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 30px), transparent 100%);
-  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 30px), transparent 100%);
-}
-.contacts__tom-strip::-webkit-scrollbar { height: 0; }
-.contacts__tom-item {
-  display: flex; flex-direction: column; align-items: center; gap: var(--sp-3);
-  flex: 0 0 auto; width: 62px;
-}
-.contacts__tom-item .t-micro {
-  max-width: 62px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  color: var(--fg-tertiary);
-}
+.contacts__pinned { margin-bottom: var(--sp-7); display: flex; flex-direction: column; }
+.contacts__pinned.is-hidden { display: none; }
+.contacts__pinned-label { padding-bottom: var(--sp-3); }
+.contacts__pinned-list { display: flex; flex-direction: column; }
 .contacts__dupe {
   display: flex; align-items: center; gap: var(--sp-4);
   width: 100%; padding: var(--sp-4) var(--sp-5);

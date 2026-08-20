@@ -2,14 +2,16 @@
  * DIALR — Contacts screen.
  *
  * A real contacts app underneath the styling: sections, sticky letters, a jump
- * index, add/edit/delete. The two DIALR additions are a "top of mind" row (the
- * six people you actually call) and duplicate-merge suggestions, both optional.
+ * index, add/edit/delete. The two DIALR additions are a "pinned / your
+ * favourites" row (the same row component as the A-Z list, rendered into its
+ * own container so a favourite can appear both pinned and in its normal
+ * alphabetical spot) and duplicate-merge suggestions, both optional.
  */
 import { h, setText, toggle, reconcile } from '../core/dom.js';
 import { icon } from '../core/icons.js';
 import { Avatar } from '../components/primitives/Avatar.js';
 import { EmptyState, PermissionState, Skeleton } from '../components/primitives/States.js';
-import { selContactSections, selContactList, selTopOfMind, selPermissionsOk } from '../state/selectors.js';
+import { selContactSections, selContactList, selPermissionsOk } from '../state/selectors.js';
 import { duplicateSuggestions } from '../state/smart.js';
 import { formatNumber } from '../core/format.js';
 import haptics from '../core/haptics.js';
@@ -22,7 +24,9 @@ export function ContactsScreen({ store, actions }) {
     on: { click: () => actions.addContact() },
   });
 
-  const tomRow = h('div.contacts__tom');
+  const pinnedRow = h('div.contacts__pinned');
+  const pinnedList = h('div.contacts__pinned-list');
+  const pinnedStore = new Map();
   const dupeSlot = h('div.contacts__dupes');
   const list = h('div.contacts__list');
   const indexRail = h('div.contacts__index');
@@ -30,7 +34,11 @@ export function ContactsScreen({ store, actions }) {
   const rowStore = new Map();
 
   const body = h('div.screen__body', null,
-    h('div.screen__inner', null, tomRow, dupeSlot, stateSlot, list));
+    h('div.screen__inner', null, pinnedRow, dupeSlot, stateSlot, list));
+
+  pinnedRow.append(
+    h('div.contacts__pinned-label.t-micro.c-4', { text: 'Pinned / your favourites' }),
+    pinnedList);
 
   const el = h('section.screen.screen--contacts', { id: 'screen-contacts', role: 'tabpanel', aria: { label: 'Contacts' } },
     h('header.screen__header', null,
@@ -38,21 +46,23 @@ export function ContactsScreen({ store, actions }) {
       addBtn),
     body, indexRail);
 
-  function renderTopOfMind(state) {
-    const people = selTopOfMind(state);
-    tomRow.textContent = '';
-    if (!people.length || state.contactsUi.query) { toggle(tomRow, 'is-hidden', true); return; }
-    toggle(tomRow, 'is-hidden', false);
-    tomRow.appendChild(h('div.t-micro.c-4', { text: 'Top of mind' }));
-    const strip = h('div.contacts__tom-strip');
-    for (const p of people) {
-      const av = Avatar({ size: 'md', name: p.displayName, src: p.avatar, ring: p.isDialrUser, variant: 'mono' });
-      strip.appendChild(h('button.contacts__tom-item', {
-        type: 'button', aria: { label: `Call ${p.displayName}` },
-        on: { click: () => { haptics.fire('success'); actions.call(p.primaryNumber, p.key); } },
-      }, av.el, h('span.t-micro', { text: p.firstName })));
-    }
-    tomRow.appendChild(strip);
+  /**
+   * Favourited contacts appear here AND again in their normal alphabetical
+   * position below — a deliberate duplication (per the reference mockup), so
+   * this reconciles into its own container with its own key store rather
+   * than reusing `rowStore`/`list`: reconcile() only keeps one DOM node per
+   * key, so sharing either with the main list would make the row vanish
+   * from whichever section rendered second.
+   */
+  function renderPinned(state, all) {
+    const people = all.filter((v) => v.favourite);
+    if (!people.length || state.contactsUi.query) { toggle(pinnedRow, 'is-hidden', true); return; }
+    toggle(pinnedRow, 'is-hidden', false);
+    reconcile(pinnedList, people.map((v) => ({ id: v.id || v.key, view: v })), {
+      key: (r) => r.id,
+      store: pinnedStore,
+      create: (r) => contactRow(r.view, actions),
+    });
   }
 
   function renderDupes(state) {
@@ -94,6 +104,7 @@ export function ContactsScreen({ store, actions }) {
     if (state.app.permissionsChecked && !selPermissionsOk(state)) {
       stateSlot.textContent = '';
       list.textContent = ''; rowStore.clear();
+      toggle(pinnedRow, 'is-hidden', true);
       stateSlot.appendChild(PermissionState({
         title: 'DIALR needs your contacts',
         body: 'So it can show names instead of numbers. Your contacts stay on this phone.',
@@ -107,11 +118,12 @@ export function ContactsScreen({ store, actions }) {
 
     if (state.directory.contactsStatus === 'loading' && !state.directory.contacts.length) {
       stateSlot.textContent = '';
+      toggle(pinnedRow, 'is-hidden', true);
       stateSlot.appendChild(Skeleton({ variant: 'row', count: 8 }).el);
       return;
     }
 
-    renderTopOfMind(state);
+    renderPinned(state, all);
     renderDupes(state);
 
     const sections = selContactSections(state);
@@ -147,7 +159,13 @@ export function ContactsScreen({ store, actions }) {
     renderIndex(sections);
   }
 
-  return { el, update, destroy() { for (const i of rowStore.values()) i.destroy?.(); } };
+  return {
+    el, update,
+    destroy() {
+      for (const i of rowStore.values()) i.destroy?.();
+      for (const i of pinnedStore.values()) i.destroy?.();
+    },
+  };
 }
 
 function contactRow(view, actions) {

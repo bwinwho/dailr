@@ -108,10 +108,11 @@ function contactsContext(state, base) {
                  intent: { type: 'add-contact', number: q } },
     };
   }
-  return {
-    ...base,
-    secondary: [{ id: 'new-contact', icon: 'plus', label: 'New contact', intent: { type: 'add-contact' } }],
-  };
+  // No secondary aux pill here: it renders in the exact spot the bottom-slot
+  // search bar occupies (see bottomController.js) and was covering it —
+  // "easy to access search" was unreachable. The header's own add button
+  // already covers "new contact".
+  return base;
 }
 
 /* --------------------------------------------------------------- overlays */
